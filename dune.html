@@ -22,7 +22,6 @@
             color: white;
         }
 
-        /* Экраны */
         .screen {
             position: absolute;
             top: 0; left: 0;
@@ -36,7 +35,6 @@
             z-index: 10;
         }
 
-        /* Главное меню */
         #menu-screen {
             display: flex;
             background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
@@ -55,7 +53,9 @@
             margin: 10px;
             text-transform: uppercase;
             box-shadow: 0 4px 15px rgba(212, 163, 115, 0.4);
+            transition: 0.2s;
         }
+        .btn:active { transform: scale(0.95); }
 
         .btn-secondary {
             background: transparent;
@@ -63,7 +63,6 @@
             border: 2px solid var(--dune-gold);
         }
 
-        /* Выбор сложности и персонажа */
         .grid-select {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -85,16 +84,13 @@
             color: black;
         }
 
-        /* Игра */
-        #game-canvas {
-            display: block;
-            background: #2c1e12;
-        }
+        #game-canvas { display: block; background: #2c1e12; }
 
         #ui-layer {
             position: absolute;
             top: 20px; left: 20px;
             pointer-events: none;
+            z-index: 5;
         }
 
         .hp-bar {
@@ -109,15 +105,14 @@
             transition: width 0.3s;
         }
 
-        /* Мобильное управление */
         #mobile-ctrl {
             position: absolute;
-            bottom: 30px;
-            width: 100%;
+            bottom: 30px; width: 100%;
             display: none;
             justify-content: space-between;
             padding: 0 40px;
             box-sizing: border-box;
+            z-index: 5;
         }
 
         .ctrl-btn {
@@ -130,6 +125,17 @@
             font-size: 30px;
             user-select: none;
         }
+
+        /* Экран смерти */
+        #death-screen {
+            background: rgba(15, 10, 5, 0.95);
+            z-index: 20;
+            text-align: center;
+            padding: 20px;
+        }
+        #death-title { color: var(--hp-red); font-size: 40px; margin-bottom: 10px; text-transform: uppercase; }
+        #death-reason { font-size: 20px; color: var(--dune-gold); margin-bottom: 30px; }
+
     </style>
 </head>
 <body>
@@ -150,7 +156,7 @@
     <div id="char-screen" class="screen" style="background: var(--dune-dark);">
         <h2>Выберите героя</h2>
         <div class="grid-select">
-            <div class="char-card" onclick="selectChar('Пол')">Пол Атрейдес</div>
+            <div class="char-card active" onclick="selectChar('Пол')">Пол Атрейдес</div>
             <div class="char-card" onclick="selectChar('Джессика')">Леди Джессика</div>
             <div class="char-card" onclick="selectChar('Лето')">Лето Атрейдес</div>
             <div class="char-card" onclick="selectChar('Чани')">Чани</div>
@@ -177,6 +183,13 @@
         </div>
     </div>
 
+    <div id="death-screen" class="screen">
+        <div id="death-title">ВЫ ПОГИБЛИ</div>
+        <div id="death-reason">Пески поглотили вас.</div>
+        <button class="btn" onclick="initLevel()">Попробовать снова</button>
+        <button class="btn btn-secondary" onclick="showScreen('menu-screen')">Главное меню</button>
+    </div>
+
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
@@ -185,39 +198,31 @@
         const ctx = canvas.getContext('2d');
         
         let gameState = {
-            screen: 'menu',
-            difficulty: 'easy',
-            character: 'Пол',
-            hp: 100,
-            level: 1,
-            isGameOver: false
+            screen: 'menu', difficulty: 'easy', character: 'Пол',
+            hp: 100, level: 1, isGameOver: false
         };
 
-        // Настройки уровней
         const levelConfig = {
-            easy: { wormChance: 0.002, stormFreq: 0, gravity: 0.5, speed: 5 },
-            medium: { wormChance: 0.005, stormFreq: 300, gravity: 0.6, speed: 6 },
-            hard: { wormChance: 0.01, stormFreq: 150, gravity: 0.7, speed: 7 }
+            easy: { wormChance: 0.002, shipChance: 0.005, gravity: 0.5, speed: 5 },
+            medium: { wormChance: 0.005, shipChance: 0.01, gravity: 0.6, speed: 6 },
+            hard: { wormChance: 0.01, shipChance: 0.02, gravity: 0.7, speed: 7 }
         };
 
-        let player = { x: 100, y: 300, w: 40, h: 60, vx: 0, vy: 0, grounded: false };
+        let player = { x: 100, y: 300, w: 30, h: 60, vx: 0, vy: 0, grounded: false, state: 'idle', frame: 0, dir: 1 };
         let platforms = [];
-        let hazards = []; // Черви, корабли
+        let hazards = []; 
+        let ships = [];
+        let lasers = [];
         let finishLine = { x: 3000, y: 0, w: 50, h: 500 };
         let cameraX = 0;
         let keys = {};
-        let stormActive = false;
-        let stormTimer = 0;
 
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
             document.getElementById(id).style.display = 'flex';
         }
 
-        function setDifficulty(d) {
-            gameState.difficulty = d;
-            showScreen('char-screen');
-        }
+        function setDifficulty(d) { gameState.difficulty = d; showScreen('char-screen'); }
 
         function selectChar(c) {
             gameState.character = c;
@@ -232,197 +237,276 @@
             if (/Android|iPhone/i.test(navigator.userAgent)) {
                 document.getElementById('mobile-ctrl').style.display = 'flex';
             }
+            gameState.level = 1;
             initLevel();
             requestAnimationFrame(gameLoop);
         }
 
         function initLevel() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            player.x = 100; player.y = 300;
-            gameState.hp = 100;
-            gameState.isGameOver = false;
-            cameraX = 0;
+            showScreen('game-screen');
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            player.x = 100; player.y = 100; player.vx = 0; player.vy = 0;
+            gameState.hp = 100; gameState.isGameOver = false;
+            cameraX = 0; hazards = []; ships = []; lasers = [];
             
-            // Генерация карты
+            // Генерация платформ с пропастями
             platforms = [
-                { x: 0, y: canvas.height - 100, w: 800, h: 100 }, // Старт
-                { x: 1000, y: canvas.height - 200, w: 400, h: 50 },
-                { x: 1600, y: canvas.height - 150, w: 600, h: 50 },
-                { x: 2400, y: canvas.height - 250, w: 300, h: 50 },
-                { x: 2900, y: canvas.height - 100, w: 1000, h: 100 } // Финиш
+                { x: 0, y: canvas.height - 100, w: 800, h: 200 }, // Старт
+                { x: 1000, y: canvas.height - 150, w: 500, h: 200 }, // Пропасть перед этим
+                { x: 1700, y: canvas.height - 250, w: 400, h: 300 },
+                { x: 2300, y: canvas.height - 100, w: 400, h: 200 },
+                { x: 2900, y: canvas.height - 100, w: 1000, h: 200 } // Финиш
             ];
-            
             finishLine.x = 3500;
-            hazards = [];
         }
 
-        // Управление
         window.addEventListener('keydown', e => keys[e.code] = true);
         window.addEventListener('keyup', e => keys[e.code] = false);
 
-        // Мобильное управление
         const bindTouch = (id, key) => {
             const btn = document.getElementById(id);
+            if(!btn) return;
             btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; });
             btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; });
         };
-        bindTouch('btn-left', 'KeyA');
-        bindTouch('btn-right', 'KeyD');
-        bindTouch('btn-up', 'KeyW');
+        bindTouch('btn-left', 'KeyA'); bindTouch('btn-right', 'KeyD'); bindTouch('btn-up', 'KeyW');
+
+        function triggerDeath(reason) {
+            if (gameState.isGameOver) return;
+            gameState.isGameOver = true;
+            
+            const isFemale = ['Джессика', 'Чани'].includes(gameState.character);
+            const verbDead = isFemale ? 'сгинула' : 'сгинул';
+            const verbEaten = isFemale ? 'поглощена' : 'поглощен';
+            const verbKilled = isFemale ? 'убита' : 'убит';
+
+            let text = "";
+            if (reason === 'fall') text = `${gameState.character} ${verbDead} в бездонных песках Арракиса...`;
+            else if (reason === 'worm') text = `${gameState.character} ${verbEaten} великим Шай-Хулудом!`;
+            else if (reason === 'ship') text = `${gameState.character} ${verbKilled} с орбиты кораблями Харконненов.`;
+
+            document.getElementById('death-reason').innerText = text;
+            showScreen('death-screen');
+        }
 
         function update() {
-            if (gameState.hp <= 0) {
-                alert("Вы погибли в песках Арракиса!");
-                initLevel();
-                return;
-            }
-
+            if (gameState.isGameOver) return;
             let config = levelConfig[gameState.difficulty];
 
-            // Движение
-            if (keys['KeyA']) player.vx = -config.speed;
-            else if (keys['KeyD']) player.vx = config.speed;
-            else player.vx *= 0.8;
+            // Движение игрока
+            player.state = 'idle';
+            if (keys['KeyA']) { player.vx = -config.speed; player.dir = -1; player.state = 'run'; }
+            else if (keys['KeyD']) { player.vx = config.speed; player.dir = 1; player.state = 'run'; }
+            else { player.vx *= 0.8; }
 
-            if (keys['KeyW'] && player.grounded) {
-                player.vy = -15;
-                player.grounded = false;
-            }
+            if (keys['KeyW'] && player.grounded) { player.vy = -14; player.grounded = false; }
+            if (!player.grounded) player.state = 'jump';
 
             player.vy += config.gravity;
             player.x += player.vx;
             player.y += player.vy;
+            player.frame += Math.abs(player.vx) * 0.1;
 
-            // Буря (замедление)
-            if (stormActive) {
-                player.x -= 2; // Снос ветром
-                gameState.hp -= 0.05;
-            }
-
-            // Коллизии с платформами
+            // Коллизии
             player.grounded = false;
             platforms.forEach(p => {
-                if (player.x < p.x + p.w && player.x + player.w > p.x &&
-                    player.y < p.y + p.h && player.y + player.h > p.y) {
-                    if (player.vy > 0) {
-                        player.y = p.y - player.h;
-                        player.vy = 0;
-                        player.grounded = true;
-                    }
+                if (player.x + 10 < p.x + p.w && player.x + player.w - 10 > p.x &&
+                    player.y + player.h >= p.y && player.y + player.h <= p.y + 20 && player.vy > 0) {
+                    player.y = p.y - player.h;
+                    player.vy = 0;
+                    player.grounded = true;
                 }
             });
 
-            // Камера
+            // Смерть от падения
+            if (player.y > canvas.height + 100) triggerDeath('fall');
+
             cameraX = player.x - canvas.width / 3;
 
-            // Проверка финиша
+            // Финиш
             if (player.x > finishLine.x) {
-                alert("Уровень пройден!");
+                alert("Уровень пройден! Приготовьтесь к следующему.");
                 gameState.level++;
                 initLevel();
+                return;
             }
 
-            // Генерация червя (Шай-Хулуд)
+            // Спавн червей
             if (player.grounded && Math.random() < config.wormChance) {
-                hazards.push({ x: player.x + 200, y: canvas.height, type: 'worm', timer: 60 });
+                hazards.push({ x: player.x + (Math.random()*400 - 100), timer: 60, active: true });
             }
 
-            // Обновление опасностей
+            // Обновление червей
             hazards.forEach((h, i) => {
-                if (h.type === 'worm') {
-                    h.timer--;
-                    if (h.timer < 0) {
-                        // Анимация рывка червя вверх
-                        if (Math.abs(player.x - h.x) < 60 && player.y > canvas.height - 250) {
-                            gameState.hp -= 30; // Урон от червя
-                        }
-                        if (h.timer < -30) hazards.splice(i, 1);
-                    }
+                if (!h.active) return;
+                h.timer--;
+                if (h.timer < 0) {
+                    if (Math.abs(player.x - h.x) < 80 && player.y > canvas.height - 300) triggerDeath('worm');
+                    if (h.timer < -40) h.active = false;
                 }
             });
 
-            // Буря по таймеру
-            if (config.stormFreq > 0) {
-                stormTimer++;
-                if (stormTimer > config.stormFreq) {
-                    stormActive = !stormActive;
-                    stormTimer = 0;
-                }
+            // Спавн кораблей
+            if (Math.random() < config.shipChance && ships.length < 2) {
+                ships.push({ x: cameraX + canvas.width + 100, y: 50 + Math.random()*100, shootTimer: 50 });
             }
 
-            // UI
-            document.getElementById('hp-fill').style.width = gameState.hp + "%";
+            // Обновление кораблей и лазеров
+            ships.forEach((s, i) => {
+                s.x -= 4; // Летит влево
+                s.shootTimer--;
+                if (s.shootTimer <= 0) {
+                    // Выстрел
+                    lasers.push({ x: s.x + 20, y: s.y + 20, vx: (player.x - s.x)/50, vy: (player.y - s.y)/50 });
+                    s.shootTimer = 80;
+                }
+                if (s.x < cameraX - 200) ships.splice(i, 1);
+            });
+
+            lasers.forEach((l, i) => {
+                l.x += l.vx; l.y += l.vy;
+                // Попадание в игрока (3 выстрела = смерть, значит 1 выстрел снимает ~34 хп)
+                if (l.x > player.x && l.x < player.x + player.w && l.y > player.y && l.y < player.y + player.h) {
+                    gameState.hp -= 34;
+                    lasers.splice(i, 1);
+                    if (gameState.hp <= 0) triggerDeath('ship');
+                }
+                // Удаление если улетел вниз
+                if (l.y > canvas.height) lasers.splice(i, 1);
+            });
+
+            document.getElementById('hp-fill').style.width = Math.max(0, gameState.hp) + "%";
             document.getElementById('status-text').innerText = `Герой: ${gameState.character} | Уровень: ${gameState.level}`;
+        }
+
+        // РИСОВАНИЕ ПЕРСОНАЖА
+        function drawPlayer(ctx, x, y, char, state, frame, dir) {
+            ctx.save();
+            ctx.translate(x + 15, y + 30);
+            ctx.scale(dir, 1); // Поворот в сторону движения
+
+            let bodyColor = "#333"; let eyeColor = "#fff"; let extra = null;
+            
+            // Настройка внешности
+            if(char === 'Пол' || char === 'Чани') { bodyColor = "#222"; eyeColor = "#00d2ff"; } // Спайс глаза и дистикомб
+            if(char === 'Джессика') { bodyColor = "#8b0000"; extra = 'dress'; } // Красное платье
+            if(char === 'Лето') { bodyColor = "#2f4f4f"; extra = 'armor'; } // Броня
+            if(char === 'Стилгар') { bodyColor = "#4a3c31"; extra = 'cloak'; } // Плащ
+            if(char === 'Барон') { bodyColor = "#111"; extra = 'fat'; } // Толстый
+            if(char === 'Император') { bodyColor = "#daa520"; } // Золотой
+            if(char === 'Фейд') { bodyColor = "#eee"; eyeColor = "#000"; } // Бледный
+
+            let swing = (state === 'run') ? Math.sin(frame) * 20 : 0;
+            if (state === 'jump') swing = 20;
+
+            // Тело
+            ctx.fillStyle = bodyColor;
+            if (extra === 'fat') {
+                ctx.fillRect(-20, -10, 40, 30); // Широкое тело Барона
+            } else if (extra === 'dress' || extra === 'cloak') {
+                ctx.beginPath(); ctx.moveTo(-10, -10); ctx.lineTo(10, -10); ctx.lineTo(15, 20); ctx.lineTo(-15, 20); ctx.fill();
+            } else {
+                ctx.fillRect(-10, -10, 20, 25);
+            }
+
+            // Броня Лето
+            if (extra === 'armor') { ctx.fillStyle = "#aaa"; ctx.fillRect(-12, -10, 24, 10); }
+
+            // Ноги
+            ctx.strokeStyle = bodyColor; ctx.lineWidth = 6;
+            ctx.beginPath(); ctx.moveTo(-5, 15); ctx.lineTo(-5 + swing, 30); ctx.stroke(); // Левая
+            ctx.beginPath(); ctx.moveTo(5, 15); ctx.lineTo(5 - swing, 30); ctx.stroke(); // Правая
+
+            // Руки
+            ctx.beginPath(); ctx.moveTo(0, -5); ctx.lineTo(10 - swing, 10); ctx.stroke();
+
+            // Голова
+            ctx.fillStyle = (char === 'Фейд') ? "#fff" : "#f1c27d";
+            ctx.beginPath(); ctx.arc(0, -20, 10, 0, Math.PI*2); ctx.fill();
+            
+            // Глаза
+            ctx.fillStyle = eyeColor;
+            ctx.fillRect(2, -23, 3, 3); // Лицо всегда смотрит вперед (вправо до scale)
+
+            // Левитация Барона (эффект)
+            if (extra === 'fat' && state === 'idle') {
+                ctx.fillStyle = "rgba(0, 200, 255, 0.5)";
+                ctx.fillRect(-10, 30, 20, 5);
+            }
+
+            ctx.restore();
         }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
             ctx.save();
             ctx.translate(-cameraX, 0);
 
-            // Фон (дюны на заднем плане)
+            // Фон
             ctx.fillStyle = "#3d2b1f";
-            ctx.beginPath();
-            ctx.moveTo(0, canvas.height);
-            for(let i=0; i<5000; i+=100) {
-                ctx.lineTo(i, canvas.height - 150 + Math.sin(i/200)*50);
-            }
-            ctx.lineTo(5000, canvas.height);
-            ctx.fill();
+            ctx.beginPath(); ctx.moveTo(0, canvas.height);
+            for(let i=0; i<5000; i+=150) ctx.lineTo(i, canvas.height - 150 + Math.sin(i/100)*40);
+            ctx.lineTo(5000, canvas.height); ctx.fill();
 
-            // Платформы (песок/скалы)
-            ctx.fillStyle = "#d4a373";
+            // Платформы
             platforms.forEach(p => {
-                ctx.fillRect(p.x, p.y, p.w, p.h);
-                // Декор (текстура скал)
-                ctx.strokeStyle = "#bc8a5f";
-                ctx.strokeRect(p.x, p.y, p.w, p.h);
+                ctx.fillStyle = "#d4a373"; ctx.fillRect(p.x, p.y, p.w, p.h);
+                ctx.fillStyle = "#bc8a5f"; ctx.fillRect(p.x, p.y, p.w, 15); // Верхняя кромка песка
             });
 
             // Финиш
-            ctx.fillStyle = "gold";
-            ctx.fillRect(finishLine.x, canvas.height - 300, 20, 300);
-            ctx.fillText("ФИНИШ", finishLine.x - 20, canvas.height - 320);
+            ctx.fillStyle = "gold"; ctx.fillRect(finishLine.x, canvas.height - 300, 10, 300);
 
             // Игрок
-            ctx.fillStyle = (gameState.character.includes('Харконнен')) ? "red" : "cyan";
-            ctx.fillRect(player.x, player.y, player.w, player.h);
-            ctx.fillStyle = "white";
-            ctx.font = "12px Arial";
-            ctx.fillText(gameState.character, player.x - 10, player.y - 10);
+            if (!gameState.isGameOver) {
+                drawPlayer(ctx, player.x, player.y, gameState.character, player.state, player.frame, player.dir);
+            }
 
-            // Червь
+            // Опасности: Черви
             hazards.forEach(h => {
-                if (h.type === 'worm') {
-                    ctx.fillStyle = "#553a2b";
-                    if (h.timer > 0) {
-                        // Дрожание песка
-                        ctx.fillRect(h.x - 20 + Math.random()*10, canvas.height - 110, 80, 20);
-                    } else {
-                        // Тело червя
-                        ctx.fillRect(h.x, canvas.height - 300, 60, 300);
-                        ctx.fillStyle = "black";
-                        ctx.fillText("ШАИ-ХУЛУД!", h.x - 10, canvas.height - 320);
+                if (!h.active) return;
+                if (h.timer > 0) {
+                    // Дрожание песка (предупреждение)
+                    ctx.fillStyle = "rgba(255, 100, 0, 0.5)";
+                    ctx.beginPath(); ctx.ellipse(h.x, canvas.height - 100, 40 + Math.random()*10, 10, 0, 0, Math.PI*2); ctx.fill();
+                } else {
+                    // Рисуем реалистичного червя
+                    ctx.save();
+                    ctx.translate(h.x, canvas.height - 50);
+                    ctx.fillStyle = "#4a3018";
+                    
+                    // Тело червя (сужается книзу)
+                    ctx.beginPath(); ctx.moveTo(-60, 0); ctx.lineTo(-40, -250); ctx.lineTo(40, -250); ctx.lineTo(60, 0); ctx.fill();
+                    
+                    // Сегменты-кольца
+                    ctx.strokeStyle = "#2b1b0d"; ctx.lineWidth = 4;
+                    for(let y = -30; y > -250; y -= 40) {
+                        ctx.beginPath(); ctx.moveTo(-45 - (y/250)*15, y); ctx.quadraticCurveTo(0, y+20, 45 + (y/250)*15, y); ctx.stroke();
                     }
+
+                    // Пасть и зубы
+                    ctx.fillStyle = "#1a0b02"; ctx.beginPath(); ctx.ellipse(0, -250, 40, 20, 0, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = "#ddd";
+                    for(let a = 0; a < Math.PI*2; a += 0.5) {
+                        let tx = Math.cos(a)*35; let ty = -250 + Math.sin(a)*15;
+                        ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(Math.cos(a)*25, -250+Math.sin(a)*5); ctx.lineTo(tx+5, ty+5); ctx.fill();
+                    }
+                    ctx.restore();
                 }
             });
 
-            // Эффект бури
-            if (stormActive) {
-                ctx.fillStyle = "rgba(212, 163, 115, 0.3)";
-                ctx.fillRect(cameraX, 0, canvas.width, canvas.height);
-                for(let i=0; i<20; i++) {
-                    ctx.strokeStyle = "rgba(255,255,255,0.2)";
-                    ctx.beginPath();
-                    let x = cameraX + Math.random()*canvas.width;
-                    let y = Math.random()*canvas.height;
-                    ctx.moveTo(x, y);
-                    ctx.lineTo(x - 50, y + 20);
-                    ctx.stroke();
-                }
-            }
+            // Корабли
+            ships.forEach(s => {
+                ctx.fillStyle = "#555";
+                ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x+60, s.y-20); ctx.lineTo(s.x+40, s.y+10); ctx.fill();
+                ctx.fillStyle = "#ffcc00"; ctx.fillRect(s.x+10, s.y-5, 10, 5); // Кабина
+            });
+
+            // Лазеры
+            ctx.strokeStyle = "red"; ctx.lineWidth = 3;
+            lasers.forEach(l => {
+                ctx.beginPath(); ctx.moveTo(l.x, l.y); ctx.lineTo(l.x - l.vx*3, l.y - l.vy*3); ctx.stroke();
+            });
 
             ctx.restore();
         }
@@ -433,10 +517,8 @@
             requestAnimationFrame(gameLoop);
         }
 
-        // Адаптация размера окна
         window.addEventListener('resize', () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
         });
 
     </script>
