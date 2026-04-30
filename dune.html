@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Дюна: Испытание Арракиса</title>
+    <title>«Варик Гончарик» - Дюна: Испытание Арракиса</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
@@ -11,6 +11,7 @@
             --dune-dark: #1a140f;
             --spice-orange: #ff9f1c;
             --hp-red: #e63946;
+            --win-green: #2a9d8f;
         }
 
         body, html {
@@ -126,15 +127,16 @@
             user-select: none;
         }
 
-        /* Экран смерти */
-        #death-screen {
+        /* Экраны конца игры */
+        #death-screen, #win-screen {
             background: rgba(15, 10, 5, 0.95);
             z-index: 20;
             text-align: center;
             padding: 20px;
         }
         #death-title { color: var(--hp-red); font-size: 40px; margin-bottom: 10px; text-transform: uppercase; }
-        #death-reason { font-size: 20px; color: var(--dune-gold); margin-bottom: 30px; }
+        #win-title { color: var(--dune-gold); font-size: 40px; margin-bottom: 10px; text-transform: uppercase; }
+        .end-reason { font-size: 20px; color: var(--dune-gold); margin-bottom: 30px; max-width: 80%; }
 
     </style>
 </head>
@@ -156,14 +158,14 @@
     <div id="char-screen" class="screen" style="background: var(--dune-dark);">
         <h2>Выберите героя</h2>
         <div class="grid-select">
-            <div class="char-card active" onclick="selectChar('Пол')">Пол Атрейдес</div>
-            <div class="char-card" onclick="selectChar('Джессика')">Леди Джессика</div>
-            <div class="char-card" onclick="selectChar('Лето')">Лето Атрейдес</div>
-            <div class="char-card" onclick="selectChar('Чани')">Чани</div>
-            <div class="char-card" onclick="selectChar('Стилгар')">Стилгар</div>
-            <div class="char-card" onclick="selectChar('Барон')">В. Харконнен</div>
-            <div class="char-card" onclick="selectChar('Фейд')">Фейд-Раута</div>
-            <div class="char-card" onclick="selectChar('Император')">Шаддам IV</div>
+            <div class="char-card active" onclick="selectChar(this, 'Пол')">Пол Атрейдес</div>
+            <div class="char-card" onclick="selectChar(this, 'Джессика')">Леди Джессика</div>
+            <div class="char-card" onclick="selectChar(this, 'Лето')">Лето Атрейдес</div>
+            <div class="char-card" onclick="selectChar(this, 'Чани')">Чани</div>
+            <div class="char-card" onclick="selectChar(this, 'Стилгар')">Стилгар</div>
+            <div class="char-card" onclick="selectChar(this, 'Барон')">В. Харконнен</div>
+            <div class="char-card" onclick="selectChar(this, 'Фейд')">Фейд-Раута</div>
+            <div class="char-card" onclick="selectChar(this, 'Император')">Шаддам IV</div>
         </div>
         <button class="btn" style="margin-top: 20px;" onclick="startGame()">В ПУТЬ!</button>
     </div>
@@ -185,8 +187,15 @@
 
     <div id="death-screen" class="screen">
         <div id="death-title">ВЫ ПОГИБЛИ</div>
-        <div id="death-reason">Пески поглотили вас.</div>
+        <div id="death-reason" class="end-reason">Пески поглотили вас.</div>
         <button class="btn" onclick="initLevel()">Попробовать снова</button>
+        <button class="btn btn-secondary" onclick="showScreen('menu-screen')">Главное меню</button>
+    </div>
+
+    <div id="win-screen" class="screen">
+        <div id="win-title">ПОЗДРАВЛЯЕМ!</div>
+        <div id="win-text" class="end-reason">Выживание подтверждено!</div>
+        <button class="btn" onclick="nextLevel()">Следующее испытание</button>
         <button class="btn btn-secondary" onclick="showScreen('menu-screen')">Главное меню</button>
     </div>
 
@@ -224,12 +233,12 @@
 
         function setDifficulty(d) { gameState.difficulty = d; showScreen('char-screen'); }
 
-        function selectChar(c) {
+        function selectChar(element, c) {
             gameState.character = c;
             document.querySelectorAll('.char-card').forEach(card => {
                 card.classList.remove('active');
-                if(card.innerText.includes(c)) card.classList.add('active');
             });
+            element.classList.add('active');
         }
 
         function startGame() {
@@ -245,19 +254,25 @@
         function initLevel() {
             showScreen('game-screen');
             canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-            player.x = 100; player.y = 100; player.vx = 0; player.vy = 0;
+            player.x = 100; player.y = 100; player.vx = 0; player.vy = 0; player.state = 'idle';
             gameState.hp = 100; gameState.isGameOver = false;
             cameraX = 0; hazards = []; ships = []; lasers = [];
             
-            // Генерация платформ с пропастями
+            keys = {}; 
+            
             platforms = [
-                { x: 0, y: canvas.height - 100, w: 800, h: 200 }, // Старт
-                { x: 1000, y: canvas.height - 150, w: 500, h: 200 }, // Пропасть перед этим
+                { x: 0, y: canvas.height - 100, w: 800, h: 200 }, 
+                { x: 1000, y: canvas.height - 150, w: 500, h: 200 }, 
                 { x: 1700, y: canvas.height - 250, w: 400, h: 300 },
                 { x: 2300, y: canvas.height - 100, w: 400, h: 200 },
-                { x: 2900, y: canvas.height - 100, w: 1000, h: 200 } // Финиш
+                { x: 2900, y: canvas.height - 100, w: 1000, h: 200 } 
             ];
             finishLine.x = 3500;
+        }
+
+        function nextLevel() {
+            gameState.level++;
+            initLevel();
         }
 
         window.addEventListener('keydown', e => keys[e.code] = true);
@@ -289,11 +304,25 @@
             showScreen('death-screen');
         }
 
+        // НОВАЯ ФУНКЦИЯ ПОБЕДЫ С ДИНАМИЧЕСКИМ ТЕКСТОМ
+        function triggerWin() {
+            if (gameState.isGameOver) return;
+            gameState.isGameOver = true;
+            
+            const isFemale = ['Джессика', 'Чани'].includes(gameState.character);
+            const verbSurvive = isFemale ? 'выжила' : 'выжил';
+            const verbReach = isFemale ? 'добралась' : 'добрался';
+
+            const text = `${gameState.character} ${verbSurvive} в песках Арракиса и ${verbReach} до безопасного места!`;
+            
+            document.getElementById('win-text').innerText = text;
+            showScreen('win-screen');
+        }
+
         function update() {
             if (gameState.isGameOver) return;
             let config = levelConfig[gameState.difficulty];
 
-            // Движение игрока
             player.state = 'idle';
             if (keys['KeyA']) { player.vx = -config.speed; player.dir = -1; player.state = 'run'; }
             else if (keys['KeyD']) { player.vx = config.speed; player.dir = 1; player.state = 'run'; }
@@ -307,7 +336,6 @@
             player.y += player.vy;
             player.frame += Math.abs(player.vx) * 0.1;
 
-            // Коллизии
             player.grounded = false;
             platforms.forEach(p => {
                 if (player.x + 10 < p.x + p.w && player.x + player.w - 10 > p.x &&
@@ -318,25 +346,20 @@
                 }
             });
 
-            // Смерть от падения
             if (player.y > canvas.height + 100) triggerDeath('fall');
 
             cameraX = player.x - canvas.width / 3;
 
-            // Финиш
+            // Вызов функции победы при достижении финиша
             if (player.x > finishLine.x) {
-                alert("Уровень пройден! Приготовьтесь к следующему.");
-                gameState.level++;
-                initLevel();
+                triggerWin();
                 return;
             }
 
-            // Спавн червей
             if (player.grounded && Math.random() < config.wormChance) {
                 hazards.push({ x: player.x + (Math.random()*400 - 100), timer: 60, active: true });
             }
 
-            // Обновление червей
             hazards.forEach((h, i) => {
                 if (!h.active) return;
                 h.timer--;
@@ -346,17 +369,14 @@
                 }
             });
 
-            // Спавн кораблей
             if (Math.random() < config.shipChance && ships.length < 2) {
                 ships.push({ x: cameraX + canvas.width + 100, y: 50 + Math.random()*100, shootTimer: 50 });
             }
 
-            // Обновление кораблей и лазеров
             ships.forEach((s, i) => {
-                s.x -= 4; // Летит влево
+                s.x -= 4; 
                 s.shootTimer--;
                 if (s.shootTimer <= 0) {
-                    // Выстрел
                     lasers.push({ x: s.x + 20, y: s.y + 20, vx: (player.x - s.x)/50, vy: (player.y - s.y)/50 });
                     s.shootTimer = 80;
                 }
@@ -365,13 +385,11 @@
 
             lasers.forEach((l, i) => {
                 l.x += l.vx; l.y += l.vy;
-                // Попадание в игрока (3 выстрела = смерть, значит 1 выстрел снимает ~34 хп)
                 if (l.x > player.x && l.x < player.x + player.w && l.y > player.y && l.y < player.y + player.h) {
                     gameState.hp -= 34;
                     lasers.splice(i, 1);
                     if (gameState.hp <= 0) triggerDeath('ship');
                 }
-                // Удаление если улетел вниз
                 if (l.y > canvas.height) lasers.splice(i, 1);
             });
 
@@ -379,56 +397,47 @@
             document.getElementById('status-text').innerText = `Герой: ${gameState.character} | Уровень: ${gameState.level}`;
         }
 
-        // РИСОВАНИЕ ПЕРСОНАЖА
         function drawPlayer(ctx, x, y, char, state, frame, dir) {
             ctx.save();
             ctx.translate(x + 15, y + 30);
-            ctx.scale(dir, 1); // Поворот в сторону движения
+            ctx.scale(dir, 1); 
 
             let bodyColor = "#333"; let eyeColor = "#fff"; let extra = null;
             
-            // Настройка внешности
-            if(char === 'Пол' || char === 'Чани') { bodyColor = "#222"; eyeColor = "#00d2ff"; } // Спайс глаза и дистикомб
-            if(char === 'Джессика') { bodyColor = "#8b0000"; extra = 'dress'; } // Красное платье
-            if(char === 'Лето') { bodyColor = "#2f4f4f"; extra = 'armor'; } // Броня
-            if(char === 'Стилгар') { bodyColor = "#4a3c31"; extra = 'cloak'; } // Плащ
-            if(char === 'Барон') { bodyColor = "#111"; extra = 'fat'; } // Толстый
-            if(char === 'Император') { bodyColor = "#daa520"; } // Золотой
-            if(char === 'Фейд') { bodyColor = "#eee"; eyeColor = "#000"; } // Бледный
+            if(char === 'Пол' || char === 'Чани') { bodyColor = "#222"; eyeColor = "#00d2ff"; } 
+            if(char === 'Джессика') { bodyColor = "#8b0000"; extra = 'dress'; } 
+            if(char === 'Лето') { bodyColor = "#2f4f4f"; extra = 'armor'; } 
+            if(char === 'Стилгар') { bodyColor = "#4a3c31"; extra = 'cloak'; } 
+            if(char === 'Барон') { bodyColor = "#111"; extra = 'fat'; } 
+            if(char === 'Император') { bodyColor = "#daa520"; } 
+            if(char === 'Фейд') { bodyColor = "#eee"; eyeColor = "#000"; } 
 
             let swing = (state === 'run') ? Math.sin(frame) * 20 : 0;
             if (state === 'jump') swing = 20;
 
-            // Тело
             ctx.fillStyle = bodyColor;
             if (extra === 'fat') {
-                ctx.fillRect(-20, -10, 40, 30); // Широкое тело Барона
+                ctx.fillRect(-20, -10, 40, 30); 
             } else if (extra === 'dress' || extra === 'cloak') {
                 ctx.beginPath(); ctx.moveTo(-10, -10); ctx.lineTo(10, -10); ctx.lineTo(15, 20); ctx.lineTo(-15, 20); ctx.fill();
             } else {
                 ctx.fillRect(-10, -10, 20, 25);
             }
 
-            // Броня Лето
             if (extra === 'armor') { ctx.fillStyle = "#aaa"; ctx.fillRect(-12, -10, 24, 10); }
 
-            // Ноги
             ctx.strokeStyle = bodyColor; ctx.lineWidth = 6;
-            ctx.beginPath(); ctx.moveTo(-5, 15); ctx.lineTo(-5 + swing, 30); ctx.stroke(); // Левая
-            ctx.beginPath(); ctx.moveTo(5, 15); ctx.lineTo(5 - swing, 30); ctx.stroke(); // Правая
+            ctx.beginPath(); ctx.moveTo(-5, 15); ctx.lineTo(-5 + swing, 30); ctx.stroke(); 
+            ctx.beginPath(); ctx.moveTo(5, 15); ctx.lineTo(5 - swing, 30); ctx.stroke(); 
 
-            // Руки
             ctx.beginPath(); ctx.moveTo(0, -5); ctx.lineTo(10 - swing, 10); ctx.stroke();
 
-            // Голова
             ctx.fillStyle = (char === 'Фейд') ? "#fff" : "#f1c27d";
             ctx.beginPath(); ctx.arc(0, -20, 10, 0, Math.PI*2); ctx.fill();
             
-            // Глаза
             ctx.fillStyle = eyeColor;
-            ctx.fillRect(2, -23, 3, 3); // Лицо всегда смотрит вперед (вправо до scale)
+            ctx.fillRect(2, -23, 3, 3); 
 
-            // Левитация Барона (эффект)
             if (extra === 'fat' && state === 'idle') {
                 ctx.fillStyle = "rgba(0, 200, 255, 0.5)";
                 ctx.fillRect(-10, 30, 20, 5);
@@ -442,49 +451,40 @@
             ctx.save();
             ctx.translate(-cameraX, 0);
 
-            // Фон
             ctx.fillStyle = "#3d2b1f";
             ctx.beginPath(); ctx.moveTo(0, canvas.height);
             for(let i=0; i<5000; i+=150) ctx.lineTo(i, canvas.height - 150 + Math.sin(i/100)*40);
             ctx.lineTo(5000, canvas.height); ctx.fill();
 
-            // Платформы
             platforms.forEach(p => {
                 ctx.fillStyle = "#d4a373"; ctx.fillRect(p.x, p.y, p.w, p.h);
-                ctx.fillStyle = "#bc8a5f"; ctx.fillRect(p.x, p.y, p.w, 15); // Верхняя кромка песка
+                ctx.fillStyle = "#bc8a5f"; ctx.fillRect(p.x, p.y, p.w, 15); 
             });
 
-            // Финиш
-            ctx.fillStyle = "gold"; ctx.fillRect(finishLine.x, canvas.height - 300, 10, 300);
+            ctx.fillStyle = "gold"; ctx.fillRect(finishLine.x, canvas.height - 400, 20, 400);
+            ctx.fillStyle = "rgba(255, 215, 0, 0.3)"; ctx.fillRect(finishLine.x - 10, canvas.height - 400, 40, 400);
 
-            // Игрок
             if (!gameState.isGameOver) {
                 drawPlayer(ctx, player.x, player.y, gameState.character, player.state, player.frame, player.dir);
             }
 
-            // Опасности: Черви
             hazards.forEach(h => {
                 if (!h.active) return;
                 if (h.timer > 0) {
-                    // Дрожание песка (предупреждение)
                     ctx.fillStyle = "rgba(255, 100, 0, 0.5)";
                     ctx.beginPath(); ctx.ellipse(h.x, canvas.height - 100, 40 + Math.random()*10, 10, 0, 0, Math.PI*2); ctx.fill();
                 } else {
-                    // Рисуем реалистичного червя
                     ctx.save();
                     ctx.translate(h.x, canvas.height - 50);
                     ctx.fillStyle = "#4a3018";
                     
-                    // Тело червя (сужается книзу)
                     ctx.beginPath(); ctx.moveTo(-60, 0); ctx.lineTo(-40, -250); ctx.lineTo(40, -250); ctx.lineTo(60, 0); ctx.fill();
                     
-                    // Сегменты-кольца
                     ctx.strokeStyle = "#2b1b0d"; ctx.lineWidth = 4;
                     for(let y = -30; y > -250; y -= 40) {
                         ctx.beginPath(); ctx.moveTo(-45 - (y/250)*15, y); ctx.quadraticCurveTo(0, y+20, 45 + (y/250)*15, y); ctx.stroke();
                     }
 
-                    // Пасть и зубы
                     ctx.fillStyle = "#1a0b02"; ctx.beginPath(); ctx.ellipse(0, -250, 40, 20, 0, 0, Math.PI*2); ctx.fill();
                     ctx.fillStyle = "#ddd";
                     for(let a = 0; a < Math.PI*2; a += 0.5) {
@@ -495,14 +495,12 @@
                 }
             });
 
-            // Корабли
             ships.forEach(s => {
                 ctx.fillStyle = "#555";
                 ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x+60, s.y-20); ctx.lineTo(s.x+40, s.y+10); ctx.fill();
-                ctx.fillStyle = "#ffcc00"; ctx.fillRect(s.x+10, s.y-5, 10, 5); // Кабина
+                ctx.fillStyle = "#ffcc00"; ctx.fillRect(s.x+10, s.y-5, 10, 5); 
             });
 
-            // Лазеры
             ctx.strokeStyle = "red"; ctx.lineWidth = 3;
             lasers.forEach(l => {
                 ctx.beginPath(); ctx.moveTo(l.x, l.y); ctx.lineTo(l.x - l.vx*3, l.y - l.vy*3); ctx.stroke();
