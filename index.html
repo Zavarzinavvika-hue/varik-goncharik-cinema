@@ -20,12 +20,12 @@
             padding: 0;
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
-            /* Обновленный фон: теперь он будет помещаться целиком и не будет повторяться */
+            /* Возвращаем cover для полного заполнения экрана и центрируем */
             background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), 
                               url('https://sun9-45.userapi.com/s/v1/ig2/f9KwV8w6NumIgdeX-UeD-0Kb0gi0vuurbbi7aBuouYhDNHV4AFP3r0mmPuMZ9YB0BnOdceBWkZ0KBaqGHPYUu6SZ.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1024x1024&from=bu&u=XyNMpxKEMhAc72bwkj-oBSaGaRJia6O7RFwZE8nhohc&cs=1024x0');
-            background-size: contain; 
+            background-size: cover; 
             background-repeat: no-repeat;
-            background-position: top center;
+            background-position: center;
             background-attachment: fixed;
             color: var(--text-main);
             min-height: 100vh;
@@ -86,7 +86,6 @@
             border: 4px solid var(--accent-gold);
             object-fit: cover;
             box-shadow: 0 0 25px rgba(255, 204, 0, 0.5);
-            /* Если картинка не загрузится, будет виден темно-серый фон, а не пустота */
             background-color: #2a2a30; 
         }
 
@@ -250,4 +249,3 @@
     </script>
 </body>
 </html>
-
