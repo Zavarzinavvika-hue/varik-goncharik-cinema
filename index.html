@@ -57,7 +57,7 @@
             padding: 20px;
         }
 
-        /* Контейнеры экранов */
+        /* Контейнеры экранов (SPA) */
         .screen {
             display: none;
             width: 100%;
@@ -72,6 +72,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        /* Логотип и заголовки */
         .logo-container {
             width: 100%;
             display: flex;
@@ -118,6 +119,7 @@
             cursor: pointer;
             margin-bottom: 20px;
             transition: all 0.2s ease;
+            display: inline-block;
         }
         
         .btn-back:active {
@@ -125,6 +127,7 @@
             background: rgba(255, 204, 0, 0.2);
         }
 
+        /* Сетка меню */
         .menu-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -137,7 +140,6 @@
             border-radius: 20px;
             padding: 20px;
             text-align: center;
-            /* Touch-action помогает убрать задержки при тапе на мобилках */
             touch-action: manipulation; 
             cursor: pointer;
             transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -194,10 +196,12 @@
 </head>
 <body>
 
+    <!-- ЭКРАН 0: Заставка -->
     <div id="intro-overlay">
         <div id="intro-message" class="intro-text"></div>
     </div>
 
+    <!-- ЭКРАН 1: Главное меню -->
     <div id="main-content" class="screen">
         <div class="logo-container">
             <img class="logo-img" src="https://sun9-27.userapi.com/s/v1/ig2/PJj0w_d61eYGIw1f-yhabWT6axCmfA1KsV837RgPcjzzFsgLAqFohvGtOMzJYQxdl8WWYLA8IvbHlqxdGa8AkfNj.jpg?quality=95&as=32x17,48x26,72x39,108x59,160x87,240x131,360x196,480x262,540x295,640x349,720x393,1080x589,1280x698,1408x768&from=bu&u=7YJNESyj3nW1n75NUh3UMa1kt2C348iXomXiwLrGbIQ&cs=1408x0" alt="«Варик Гончарик» Лого">
@@ -208,12 +212,14 @@
         </div>
 
         <div class="menu-grid">
+            <!-- Открытие раздела с играми -->
             <div class="menu-item tab-rest" onclick="openScreen('games-content')">
                 <div class="icon">🍿</div>
                 <h3>Отдых</h3>
                 <p>Игры и развлечения</p>
             </div>
 
+            <!-- Разделы в разработке (оставлены на 404, пока мы их не напишем) -->
             <div class="menu-item tab-expert" onclick="showError404('Знаток фильмов')">
                 <div class="icon">😎</div>
                 <h3>Знаток фильмов</h3>
@@ -234,6 +240,7 @@
         </div>
     </div>
 
+    <!-- ЭКРАН 2: Раздел Отдых (Игры) -->
     <div id="games-content" class="screen">
         <button class="btn-back" onclick="openScreen('main-content')">⬅ Назад в меню</button>
         
@@ -242,25 +249,26 @@
         </div>
 
         <div class="menu-grid">
-            <div class="menu-item game-dune full-width" onclick="showError404('Игра: Дюна')">
+            <!-- Рабочие ссылки на ВСЕ HTML файлы игр -->
+            <div class="menu-item game-dune full-width" onclick="window.location.href='dune.html'">
                 <div class="icon">🏜️</div>
                 <h3>Дюна</h3>
                 <p>Отсылка к фильму Дюна часть 3</p>
             </div>
 
-            <div class="menu-item game-combat full-width" onclick="showError404('Игра: Битва героев')">
+            <div class="menu-item game-combat full-width" onclick="window.location.href='combat.html'">
                 <div class="icon">🥷</div>
                 <h3>Битва героев</h3>
                 <p>Файтинг по типу Mortal Kombat</p>
             </div>
 
-            <div class="menu-item game-race full-width" onclick="showError404('Игра: Все или ничего')">
+            <div class="menu-item game-race full-width" onclick="window.location.href='race.html'">
                 <div class="icon">🏎️</div>
                 <h3>Все или ничего</h3>
                 <p>Гонка — отсылка к фильму F1</p>
             </div>
 
-            <div class="menu-item game-bomb full-width" onclick="showError404('Игра: Спасатель')">
+            <div class="menu-item game-bomb full-width" onclick="window.location.href='bomb.html'">
                 <div class="icon">💣</div>
                 <h3>Спасатель</h3>
                 <p>Отключи бомбу — отсылка к Оппенгеймеру</p>
@@ -281,6 +289,7 @@
 
         const introOverlay = document.getElementById('intro-overlay');
         const introMessage = document.getElementById('intro-message');
+        const mainContent = document.getElementById('main-content');
         
         let msgIndex = 0;
 
@@ -297,8 +306,7 @@
                 introOverlay.style.opacity = 0;
                 setTimeout(() => {
                     introOverlay.style.display = 'none';
-                    // Показываем главное меню после заставки
-                    document.getElementById('main-content').style.display = 'block';
+                    mainContent.style.display = 'block';
                 }, 800);
             }
         }
@@ -307,24 +315,24 @@
             showNextMessage();
         };
 
-        // --- НОВАЯ ЛОГИКА НАВИГАЦИИ И ОШИБОК ---
-
-        // Функция для переключения между экранами
+        // Логика навигации между меню
         function openScreen(screenId) {
-            // Скрываем все экраны
+            // Скрываем все элементы с классом screen
             const screens = document.querySelectorAll('.screen');
             screens.forEach(screen => {
                 screen.style.display = 'none';
             });
-            // Показываем нужный
-            document.getElementById(screenId).style.display = 'block';
+            // Показываем нужный блок
+            const activeScreen = document.getElementById(screenId);
+            if (activeScreen) {
+                activeScreen.style.display = 'block';
+            }
         }
 
-        // Функция ошибки 404
+        // Логика ошибки
         function showError404(sectionName) {
             tg.showAlert(`Ошибка 404 \nРаздел "${sectionName}" находится в стадии разработки!`);
         }
-
     </script>
 </body>
 </html>
