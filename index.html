@@ -19,14 +19,8 @@
             margin: 0;
             padding: 0;
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            /* Фон главного меню теперь просто стильный темный */
             background-color: var(--bg-color);
-            /* Возвращаем cover для полного заполнения экрана и центрируем */
-            background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), 
-                              url('https://sun9-45.userapi.com/s/v1/ig2/f9KwV8w6NumIgdeX-UeD-0Kb0gi0vuurbbi7aBuouYhDNHV4AFP3r0mmPuMZ9YB0BnOdceBWkZ0KBaqGHPYUu6SZ.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1024x1024&from=bu&u=XyNMpxKEMhAc72bwkj-oBSaGaRJia6O7RFwZE8nhohc&cs=1024x0');
-            background-size: cover; 
-            background-repeat: no-repeat;
-            background-position: center;
-            background-attachment: fixed;
             color: var(--text-main);
             min-height: 100vh;
             display: flex;
@@ -40,12 +34,19 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: var(--bg-color);
+            /* Фоновое изображение перенесено сюда, на экран приветствия */
+            background-color: var(--bg-color);
+            background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), 
+                              url('https://sun9-45.userapi.com/s/v1/ig2/f9KwV8w6NumIgdeX-UeD-0Kb0gi0vuurbbi7aBuouYhDNHV4AFP3r0mmPuMZ9YB0BnOdceBWkZ0KBaqGHPYUu6SZ.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1024x1024&from=bu&u=XyNMpxKEMhAc72bwkj-oBSaGaRJia6O7RFwZE8nhohc&cs=1024x0');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 1000;
             text-align: center;
+            transition: opacity 0.8s ease;
         }
 
         .intro-text {
@@ -80,8 +81,9 @@
         }
 
         .logo-img {
-            width: 140px;
-            height: 140px;
+            /* Увеличили логотип со 140px до 170px */
+            width: 170px;
+            height: 170px;
             border-radius: 50%;
             border: 4px solid var(--accent-gold);
             object-fit: cover;
@@ -249,4 +251,3 @@
     </script>
 </body>
 </html>
-
