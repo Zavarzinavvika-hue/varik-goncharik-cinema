@@ -19,7 +19,6 @@
             margin: 0;
             padding: 0;
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            /* Фон главного меню теперь просто стильный темный */
             background-color: var(--bg-color);
             color: var(--text-main);
             min-height: 100vh;
@@ -28,13 +27,13 @@
             align-items: center;
         }
 
+        /* Заставка приветствия */
         #intro-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            /* Фоновое изображение перенесено сюда, на экран приветствия */
             background-color: var(--bg-color);
             background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), 
                               url('https://sun9-45.userapi.com/s/v1/ig2/f9KwV8w6NumIgdeX-UeD-0Kb0gi0vuurbbi7aBuouYhDNHV4AFP3r0mmPuMZ9YB0BnOdceBWkZ0KBaqGHPYUu6SZ.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1024x1024&from=bu&u=XyNMpxKEMhAc72bwkj-oBSaGaRJia6O7RFwZE8nhohc&cs=1024x0');
@@ -58,13 +57,14 @@
             padding: 20px;
         }
 
-        #main-content {
+        /* Контейнеры экранов */
+        .screen {
             display: none;
             width: 100%;
             max-width: 600px;
             padding: 20px;
             box-sizing: border-box;
-            animation: fadeIn 1s ease;
+            animation: fadeIn 0.5s ease;
         }
 
         @keyframes fadeIn {
@@ -81,7 +81,6 @@
         }
 
         .logo-img {
-            /* Увеличили логотип со 140px до 170px */
             width: 170px;
             height: 170px;
             border-radius: 50%;
@@ -107,6 +106,25 @@
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
 
+        /* Кнопка НАЗАД */
+        .btn-back {
+            background: transparent;
+            color: var(--accent-gold);
+            border: 1px solid var(--accent-gold);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-back:active {
+            transform: scale(0.9);
+            background: rgba(255, 204, 0, 0.2);
+        }
+
         .menu-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -119,8 +137,10 @@
             border-radius: 20px;
             padding: 20px;
             text-align: center;
+            /* Touch-action помогает убрать задержки при тапе на мобилках */
+            touch-action: manipulation; 
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             border: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
             flex-direction: column;
@@ -158,10 +178,17 @@
             color: var(--text-secondary);
         }
 
+        /* Цвета обводок карточек */
         .tab-rest { border-bottom: 4px solid #ff4b2b; }
         .tab-expert { border-bottom: 4px solid #00d2ff; }
         .tab-shop { border-bottom: 4px solid #f9d423; }
         .tab-roulette { border-bottom: 4px solid #a18cd1; }
+        
+        /* Цвета для игр */
+        .game-dune { border-bottom: 4px solid #d4a373; }
+        .game-combat { border-bottom: 4px solid #c1121f; }
+        .game-race { border-bottom: 4px solid #00b4d8; }
+        .game-bomb { border-bottom: 4px solid #ff9f1c; }
 
     </style>
 </head>
@@ -171,7 +198,7 @@
         <div id="intro-message" class="intro-text"></div>
     </div>
 
-    <div id="main-content">
+    <div id="main-content" class="screen">
         <div class="logo-container">
             <img class="logo-img" src="https://sun9-27.userapi.com/s/v1/ig2/PJj0w_d61eYGIw1f-yhabWT6axCmfA1KsV837RgPcjzzFsgLAqFohvGtOMzJYQxdl8WWYLA8IvbHlqxdGa8AkfNj.jpg?quality=95&as=32x17,48x26,72x39,108x59,160x87,240x131,360x196,480x262,540x295,640x349,720x393,1080x589,1280x698,1408x768&from=bu&u=7YJNESyj3nW1n75NUh3UMa1kt2C348iXomXiwLrGbIQ&cs=1408x0" alt="«Варик Гончарик» Лого">
         </div>
@@ -181,28 +208,62 @@
         </div>
 
         <div class="menu-grid">
-            <div class="menu-item tab-rest" onclick="showAlert('Отдых 🍿: Готовьтесь к приключениям в мире Дюны и боям героев!')">
+            <div class="menu-item tab-rest" onclick="openScreen('games-content')">
                 <div class="icon">🍿</div>
                 <h3>Отдых</h3>
                 <p>Игры и развлечения</p>
             </div>
 
-            <div class="menu-item tab-expert" onclick="showAlert('Знаток фильмов 😎: Тесты на любой вкус: от легких до 🔥')">
+            <div class="menu-item tab-expert" onclick="showError404('Знаток фильмов')">
                 <div class="icon">😎</div>
                 <h3>Знаток фильмов</h3>
                 <p>Проверь свои знания</p>
             </div>
 
-            <div class="menu-item tab-shop full-width" onclick="showAlert('Лавка «Гончарика»: Эксклюзивный мерч уже в наличии!')">
+            <div class="menu-item tab-shop full-width" onclick="showError404('Лавка Гончарика')">
                 <div class="icon">🛍️</div>
                 <h3>Лавка «Гончарика»</h3>
                 <p>Мерч и коллекционные вещи</p>
             </div>
 
-            <div class="menu-item tab-roulette full-width" onclick="showAlert('Кино-Рулетка 🎲: Доверьте свой вечер случаю!')">
+            <div class="menu-item tab-roulette full-width" onclick="showError404('Кино-Рулетка')">
                 <div class="icon">🎲</div>
                 <h3>Кино-Рулетка</h3>
                 <p>Подбор случайного фильма</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="games-content" class="screen">
+        <button class="btn-back" onclick="openScreen('main-content')">⬅ Назад в меню</button>
+        
+        <div class="header-title">
+            <h1>Игровой зал</h1>
+        </div>
+
+        <div class="menu-grid">
+            <div class="menu-item game-dune full-width" onclick="showError404('Игра: Дюна')">
+                <div class="icon">🏜️</div>
+                <h3>Дюна</h3>
+                <p>Отсылка к фильму Дюна часть 3</p>
+            </div>
+
+            <div class="menu-item game-combat full-width" onclick="showError404('Игра: Битва героев')">
+                <div class="icon">🥷</div>
+                <h3>Битва героев</h3>
+                <p>Файтинг по типу Mortal Kombat</p>
+            </div>
+
+            <div class="menu-item game-race full-width" onclick="showError404('Игра: Все или ничего')">
+                <div class="icon">🏎️</div>
+                <h3>Все или ничего</h3>
+                <p>Гонка — отсылка к фильму F1</p>
+            </div>
+
+            <div class="menu-item game-bomb full-width" onclick="showError404('Игра: Спасатель')">
+                <div class="icon">💣</div>
+                <h3>Спасатель</h3>
+                <p>Отключи бомбу — отсылка к Оппенгеймеру</p>
             </div>
         </div>
     </div>
@@ -211,6 +272,7 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
+        // Логика заставки
         const messages = [
             "Добро пожаловать, уважаемые гости",
             "Вы готовы отдохнуть?",
@@ -219,8 +281,7 @@
 
         const introOverlay = document.getElementById('intro-overlay');
         const introMessage = document.getElementById('intro-message');
-        const mainContent = document.getElementById('main-content');
-
+        
         let msgIndex = 0;
 
         function showNextMessage() {
@@ -236,18 +297,34 @@
                 introOverlay.style.opacity = 0;
                 setTimeout(() => {
                     introOverlay.style.display = 'none';
-                    mainContent.style.display = 'block';
+                    // Показываем главное меню после заставки
+                    document.getElementById('main-content').style.display = 'block';
                 }, 800);
             }
-        }
-
-        function showAlert(text) {
-            tg.showAlert(text);
         }
 
         window.onload = () => {
             showNextMessage();
         };
+
+        // --- НОВАЯ ЛОГИКА НАВИГАЦИИ И ОШИБОК ---
+
+        // Функция для переключения между экранами
+        function openScreen(screenId) {
+            // Скрываем все экраны
+            const screens = document.querySelectorAll('.screen');
+            screens.forEach(screen => {
+                screen.style.display = 'none';
+            });
+            // Показываем нужный
+            document.getElementById(screenId).style.display = 'block';
+        }
+
+        // Функция ошибки 404
+        function showError404(sectionName) {
+            tg.showAlert(`Ошибка 404 \nРаздел "${sectionName}" находится в стадии разработки!`);
+        }
+
     </script>
 </body>
 </html>
