@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Дюна: Испытание Арракиса</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --dune-gold: #d4a373;
+            --dune-dark: #1a140f;
+            --spice-orange: #ff9f1c;
+            --hp-red: #e63946;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background-color: var(--dune-dark);
+            font-family: 'Segoe UI', sans-serif;
+            color: white;
+        }
+
+        /* Экраны */
+        .screen {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-size: cover;
+            background-position: center;
+            z-index: 10;
+        }
+
+        /* Главное меню */
+        #menu-screen {
+            display: flex;
+            background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
+            url('https://sun9-80.userapi.com/s/v1/ig2/QE49FDHcGK2A13uZFsRl4nj4rzDuHF9Fc8MHNWJAvPq6KxK4C37kIAYJszjTEcBwftGvXuybNpc2yCKEh7Kz1vvs.jpg?quality=95&as=32x18,48x26,72x40,108x59,160x88,240x132,360x198,480x264,540x298,640x353,720x397,1080x595,1280x705,1440x793,1608x886&from=bu&u=FzGH7cURIf3QVcmlmZKbBX9tSESOVKvi9sXg_KVZoAQ&cs=1608x0');
+        }
+
+        .btn {
+            background: var(--dune-gold);
+            color: black;
+            border: none;
+            padding: 15px 40px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            margin: 10px;
+            text-transform: uppercase;
+            box-shadow: 0 4px 15px rgba(212, 163, 115, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--dune-gold);
+            border: 2px solid var(--dune-gold);
+        }
+
+        /* Выбор сложности и персонажа */
+        .grid-select {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            max-width: 90%;
+        }
+
+        .char-card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--dune-gold);
+            padding: 10px;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .char-card.active {
+            background: var(--dune-gold);
+            color: black;
+        }
+
+        /* Игра */
+        #game-canvas {
+            display: block;
+            background: #2c1e12;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 20px; left: 20px;
+            pointer-events: none;
+        }
+
+        .hp-bar {
+            width: 200px; height: 20px;
+            background: #333;
+            border: 2px solid white;
+        }
+
+        #hp-fill {
+            width: 100%; height: 100%;
+            background: var(--hp-red);
+            transition: width 0.3s;
+        }
+
+        /* Мобильное управление */
+        #mobile-ctrl {
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+            display: none;
+            justify-content: space-between;
+            padding: 0 40px;
+            box-sizing: border-box;
+        }
+
+        .ctrl-btn {
+            width: 70px; height: 70px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="menu-screen" class="screen">
+        <h1 style="font-size: 50px; letter-spacing: 10px; color: var(--dune-gold);">ДЮНА</h1>
+        <button class="btn" onclick="showScreen('diff-screen')">Начать испытание</button>
+        <button class="btn btn-secondary" onclick="window.location.href='index.html'">Назад в отдых</button>
+    </div>
+
+    <div id="diff-screen" class="screen" style="background: var(--dune-dark);">
+        <h2>Условия испытания</h2>
+        <button class="btn" onclick="setDifficulty('easy')">Легкий 😌</button>
+        <button class="btn" onclick="setDifficulty('medium')">Средний 🤬</button>
+        <button class="btn" onclick="setDifficulty('hard')">Сложный 🔥</button>
+    </div>
+
+    <div id="char-screen" class="screen" style="background: var(--dune-dark);">
+        <h2>Выберите героя</h2>
+        <div class="grid-select">
+            <div class="char-card" onclick="selectChar('Пол')">Пол Атрейдес</div>
+            <div class="char-card" onclick="selectChar('Джессика')">Леди Джессика</div>
+            <div class="char-card" onclick="selectChar('Лето')">Лето Атрейдес</div>
+            <div class="char-card" onclick="selectChar('Чани')">Чани</div>
+            <div class="char-card" onclick="selectChar('Стилгар')">Стилгар</div>
+            <div class="char-card" onclick="selectChar('Барон')">В. Харконнен</div>
+            <div class="char-card" onclick="selectChar('Фейд')">Фейд-Раута</div>
+            <div class="char-card" onclick="selectChar('Император')">Шаддам IV</div>
+        </div>
+        <button class="btn" style="margin-top: 20px;" onclick="startGame()">В ПУТЬ!</button>
+    </div>
+
+    <div id="game-screen" class="screen">
+        <div id="ui-layer">
+            <div id="status-text">Герой: Пол | Уровень: 1</div>
+            <div class="hp-bar"><div id="hp-fill"></div></div>
+        </div>
+        <canvas id="game-canvas"></canvas>
+        <div id="mobile-ctrl">
+            <div style="display: flex; gap: 20px;">
+                <div class="ctrl-btn" id="btn-left">◀</div>
+                <div class="ctrl-btn" id="btn-right">▶</div>
+            </div>
+            <div class="ctrl-btn" id="btn-up">▲</div>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let gameState = {
+            screen: 'menu',
+            difficulty: 'easy',
+            character: 'Пол',
+            hp: 100,
+            level: 1,
+            isGameOver: false
+        };
+
+        // Настройки уровней
+        const levelConfig = {
+            easy: { wormChance: 0.002, stormFreq: 0, gravity: 0.5, speed: 5 },
+            medium: { wormChance: 0.005, stormFreq: 300, gravity: 0.6, speed: 6 },
+            hard: { wormChance: 0.01, stormFreq: 150, gravity: 0.7, speed: 7 }
+        };
+
+        let player = { x: 100, y: 300, w: 40, h: 60, vx: 0, vy: 0, grounded: false };
+        let platforms = [];
+        let hazards = []; // Черви, корабли
+        let finishLine = { x: 3000, y: 0, w: 50, h: 500 };
+        let cameraX = 0;
+        let keys = {};
+        let stormActive = false;
+        let stormTimer = 0;
+
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+            document.getElementById(id).style.display = 'flex';
+        }
+
+        function setDifficulty(d) {
+            gameState.difficulty = d;
+            showScreen('char-screen');
+        }
+
+        function selectChar(c) {
+            gameState.character = c;
+            document.querySelectorAll('.char-card').forEach(card => {
+                card.classList.remove('active');
+                if(card.innerText.includes(c)) card.classList.add('active');
+            });
+        }
+
+        function startGame() {
+            showScreen('game-screen');
+            if (/Android|iPhone/i.test(navigator.userAgent)) {
+                document.getElementById('mobile-ctrl').style.display = 'flex';
+            }
+            initLevel();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function initLevel() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            player.x = 100; player.y = 300;
+            gameState.hp = 100;
+            gameState.isGameOver = false;
+            cameraX = 0;
+            
+            // Генерация карты
+            platforms = [
+                { x: 0, y: canvas.height - 100, w: 800, h: 100 }, // Старт
+                { x: 1000, y: canvas.height - 200, w: 400, h: 50 },
+                { x: 1600, y: canvas.height - 150, w: 600, h: 50 },
+                { x: 2400, y: canvas.height - 250, w: 300, h: 50 },
+                { x: 2900, y: canvas.height - 100, w: 1000, h: 100 } // Финиш
+            ];
+            
+            finishLine.x = 3500;
+            hazards = [];
+        }
+
+        // Управление
+        window.addEventListener('keydown', e => keys[e.code] = true);
+        window.addEventListener('keyup', e => keys[e.code] = false);
+
+        // Мобильное управление
+        const bindTouch = (id, key) => {
+            const btn = document.getElementById(id);
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; });
+            btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; });
+        };
+        bindTouch('btn-left', 'KeyA');
+        bindTouch('btn-right', 'KeyD');
+        bindTouch('btn-up', 'KeyW');
+
+        function update() {
+            if (gameState.hp <= 0) {
+                alert("Вы погибли в песках Арракиса!");
+                initLevel();
+                return;
+            }
+
+            let config = levelConfig[gameState.difficulty];
+
+            // Движение
+            if (keys['KeyA']) player.vx = -config.speed;
+            else if (keys['KeyD']) player.vx = config.speed;
+            else player.vx *= 0.8;
+
+            if (keys['KeyW'] && player.grounded) {
+                player.vy = -15;
+                player.grounded = false;
+            }
+
+            player.vy += config.gravity;
+            player.x += player.vx;
+            player.y += player.vy;
+
+            // Буря (замедление)
+            if (stormActive) {
+                player.x -= 2; // Снос ветром
+                gameState.hp -= 0.05;
+            }
+
+            // Коллизии с платформами
+            player.grounded = false;
+            platforms.forEach(p => {
+                if (player.x < p.x + p.w && player.x + player.w > p.x &&
+                    player.y < p.y + p.h && player.y + player.h > p.y) {
+                    if (player.vy > 0) {
+                        player.y = p.y - player.h;
+                        player.vy = 0;
+                        player.grounded = true;
+                    }
+                }
+            });
+
+            // Камера
+            cameraX = player.x - canvas.width / 3;
+
+            // Проверка финиша
+            if (player.x > finishLine.x) {
+                alert("Уровень пройден!");
+                gameState.level++;
+                initLevel();
+            }
+
+            // Генерация червя (Шай-Хулуд)
+            if (player.grounded && Math.random() < config.wormChance) {
+                hazards.push({ x: player.x + 200, y: canvas.height, type: 'worm', timer: 60 });
+            }
+
+            // Обновление опасностей
+            hazards.forEach((h, i) => {
+                if (h.type === 'worm') {
+                    h.timer--;
+                    if (h.timer < 0) {
+                        // Анимация рывка червя вверх
+                        if (Math.abs(player.x - h.x) < 60 && player.y > canvas.height - 250) {
+                            gameState.hp -= 30; // Урон от червя
+                        }
+                        if (h.timer < -30) hazards.splice(i, 1);
+                    }
+                }
+            });
+
+            // Буря по таймеру
+            if (config.stormFreq > 0) {
+                stormTimer++;
+                if (stormTimer > config.stormFreq) {
+                    stormActive = !stormActive;
+                    stormTimer = 0;
+                }
+            }
+
+            // UI
+            document.getElementById('hp-fill').style.width = gameState.hp + "%";
+            document.getElementById('status-text').innerText = `Герой: ${gameState.character} | Уровень: ${gameState.level}`;
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(-cameraX, 0);
+
+            // Фон (дюны на заднем плане)
+            ctx.fillStyle = "#3d2b1f";
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height);
+            for(let i=0; i<5000; i+=100) {
+                ctx.lineTo(i, canvas.height - 150 + Math.sin(i/200)*50);
+            }
+            ctx.lineTo(5000, canvas.height);
+            ctx.fill();
+
+            // Платформы (песок/скалы)
+            ctx.fillStyle = "#d4a373";
+            platforms.forEach(p => {
+                ctx.fillRect(p.x, p.y, p.w, p.h);
+                // Декор (текстура скал)
+                ctx.strokeStyle = "#bc8a5f";
+                ctx.strokeRect(p.x, p.y, p.w, p.h);
+            });
+
+            // Финиш
+            ctx.fillStyle = "gold";
+            ctx.fillRect(finishLine.x, canvas.height - 300, 20, 300);
+            ctx.fillText("ФИНИШ", finishLine.x - 20, canvas.height - 320);
+
+            // Игрок
+            ctx.fillStyle = (gameState.character.includes('Харконнен')) ? "red" : "cyan";
+            ctx.fillRect(player.x, player.y, player.w, player.h);
+            ctx.fillStyle = "white";
+            ctx.font = "12px Arial";
+            ctx.fillText(gameState.character, player.x - 10, player.y - 10);
+
+            // Червь
+            hazards.forEach(h => {
+                if (h.type === 'worm') {
+                    ctx.fillStyle = "#553a2b";
+                    if (h.timer > 0) {
+                        // Дрожание песка
+                        ctx.fillRect(h.x - 20 + Math.random()*10, canvas.height - 110, 80, 20);
+                    } else {
+                        // Тело червя
+                        ctx.fillRect(h.x, canvas.height - 300, 60, 300);
+                        ctx.fillStyle = "black";
+                        ctx.fillText("ШАИ-ХУЛУД!", h.x - 10, canvas.height - 320);
+                    }
+                }
+            });
+
+            // Эффект бури
+            if (stormActive) {
+                ctx.fillStyle = "rgba(212, 163, 115, 0.3)";
+                ctx.fillRect(cameraX, 0, canvas.width, canvas.height);
+                for(let i=0; i<20; i++) {
+                    ctx.strokeStyle = "rgba(255,255,255,0.2)";
+                    ctx.beginPath();
+                    let x = cameraX + Math.random()*canvas.width;
+                    let y = Math.random()*canvas.height;
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x - 50, y + 20);
+                    ctx.stroke();
+                }
+            }
+
+            ctx.restore();
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Адаптация размера окна
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+    </script>
+</body>
+</html>
