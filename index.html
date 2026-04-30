@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Варик Гончарик - Кинотеатр</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f0f12;
+            --card-bg: #1a1a20;
+            --accent-gold: #ffcc00;
+            --accent-red: #e50914;
+            --text-main: #ffffff;
+            --text-secondary: #b3b3b3;
+            --gradient-purple: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Анимация вступления */
+        #intro-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .intro-text {
+            font-size: 24px;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+            color: var(--accent-gold);
+        }
+
+        /* Главное меню */
+        #main-content {
+            display: none;
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+            box-sizing: border-box;
+            animation: fadeIn 1s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .logo-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        .logo-img {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: 3px solid var(--accent-gold);
+            object-fit: cover;
+            box-shadow: 0 0 20px rgba(255, 204, 0, 0.4);
+        }
+
+        .header-title {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header-title h1 {
+            margin: 0;
+            font-size: 28px;
+            background: linear-gradient(to right, #ffcc00, #ff6600);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Сетка вкладок */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .menu-item {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .menu-item:active {
+            transform: scale(0.95);
+        }
+
+        .menu-item.full-width {
+            grid-column: span 2;
+        }
+
+        .icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .menu-item h3 {
+            margin: 5px 0;
+            font-size: 16px;
+        }
+
+        .menu-item p {
+            margin: 0;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Цвета вкладок */
+        .tab-rest { border-bottom: 4px solid #ff4b2b; }
+        .tab-expert { border-bottom: 4px solid #00d2ff; }
+        .tab-shop { border-bottom: 4px solid #f9d423; }
+        .tab-roulette { border-bottom: 4px solid #a18cd1; }
+
+    </style>
+</head>
+<body>
+
+    <div id="intro-overlay">
+        <div id="intro-message" class="intro-text"></div>
+    </div>
+
+    <div id="main-content">
+        <div class="logo-container">
+            <img class="logo-img" src="https://sun9-45.userapi.com/s/v1/ig2/f9KwV8w6NumIgdeX-UeD-0Kb0gi0vuurbbi7aBuouYhDNHV4AFP3r0mmPuMZ9YB0BnOdceBWkZ0KBaqGHPYUu6SZ.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1024x1024&from=bu&u=XyNMpxKEMhAc72bwkj-oBSaGaRJia6O7RFwZE8nhohc&cs=1024x0" alt="Варик Гончарик Лого">
+        </div>
+
+        <div class="header-title">
+            <h1>Варик Гончарик</h1>
+        </div>
+
+        <div class="menu-grid">
+            <div class="menu-item tab-rest" onclick="showAlert('Отдых 🍿: Скоро тут будут Дюна, Битва героев и другие игры!')">
+                <div class="icon">🍿</div>
+                <h3>Отдых</h3>
+                <p>Игры и развлечения</p>
+            </div>
+
+            <div class="menu-item tab-expert" onclick="showAlert('Знаток фильмов 😎: Выберите режим сложности и начинайте тест!')">
+                <div class="icon">😎</div>
+                <h3>Знаток фильмов</h3>
+                <p>Тесты на знания</p>
+            </div>
+
+            <div class="menu-item tab-shop full-width" onclick="showAlert('Лавка «Гончарика»: Мерч T-800 и Resident Evil ждет вас!')">
+                <div class="icon">🛍️</div>
+                <h3>Лавка «Гончарика»</h3>
+                <p>Эксклюзивный мерч и коллекционки</p>
+            </div>
+
+            <div class="menu-item tab-roulette full-width" onclick="showAlert('Кино-Рулетка 🎲: Крутите колесо и выбирайте фильм!')">
+                <div class="icon">🎲</div>
+                <h3>Кино-Рулетка</h3>
+                <p>Не знаете что посмотреть? Жмите сюда!</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Расширяет приложение на весь экран
+
+        const messages = [
+            "Добро пожаловать, уважаемые гости",
+            "Вы готовы отдохнуть?",
+            "Желаем вам хорошего просмотра"
+        ];
+
+        const introOverlay = document.getElementById('intro-overlay');
+        const introMessage = document.getElementById('intro-message');
+        const mainContent = document.getElementById('main-content');
+
+        let msgIndex = 0;
+
+        function showNextMessage() {
+            if (msgIndex < messages.length) {
+                introMessage.style.opacity = 0;
+                setTimeout(() => {
+                    introMessage.innerText = messages[msgIndex];
+                    introMessage.style.opacity = 1;
+                    msgIndex++;
+                    setTimeout(showNextMessage, 2000);
+                }, 500);
+            } else {
+                // Плавный переход к меню
+                introOverlay.style.opacity = 0;
+                setTimeout(() => {
+                    introOverlay.style.display = 'none';
+                    mainContent.style.display = 'block';
+                }, 800);
+            }
+        }
+
+        function showAlert(text) {
+            tg.showAlert(text);
+        }
+
+        // Запуск последовательности
+        window.onload = () => {
+            showNextMessage();
+        };
+    </script>
+</body>
+</html>
