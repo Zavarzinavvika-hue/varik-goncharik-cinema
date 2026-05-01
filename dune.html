@@ -71,18 +71,30 @@
             max-width: 90%;
         }
 
-        .char-card {
+        .char-card, .map-card {
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid var(--dune-gold);
             padding: 10px;
             border-radius: 10px;
             text-align: center;
             cursor: pointer;
+            transition: 0.2s;
         }
 
-        .char-card.active {
+        .char-card.active, .map-card.active {
             background: var(--dune-gold);
             color: black;
+        }
+
+        #map-screen .grid-select {
+            grid-template-columns: 1fr; 
+            width: 80%;
+            max-width: 400px;
+        }
+
+        .map-card {
+            padding: 20px;
+            font-size: 18px;
         }
 
         #game-canvas { display: block; background: #2c1e12; }
@@ -135,14 +147,14 @@
             user-select: none;
         }
 
-        #death-screen, #win-screen {
+        #death-screen, #win-screen, #level-complete-screen {
             background: rgba(15, 10, 5, 0.95);
             z-index: 20;
             text-align: center;
             padding: 20px;
         }
         #death-title { color: var(--hp-red); font-size: 40px; margin-bottom: 10px; text-transform: uppercase; }
-        #win-title { color: var(--dune-gold); font-size: 40px; margin-bottom: 10px; text-transform: uppercase; }
+        #win-title, #complete-title { color: var(--dune-gold); font-size: 40px; margin-bottom: 10px; text-transform: uppercase; }
         .end-reason { font-size: 20px; color: var(--dune-gold); margin-bottom: 30px; max-width: 80%; }
 
     </style>
@@ -174,7 +186,16 @@
             <div class="char-card" onclick="selectChar(this, 'Фейд')">Фейд-Раута</div>
             <div class="char-card" onclick="selectChar(this, 'Император')">Шаддам IV</div>
         </div>
-        <button class="btn" style="margin-top: 20px;" onclick="startGame()">В ПУТЬ!</button>
+        <button class="btn" style="margin-top: 20px;" onclick="goToMapSelect()">Выбрать карту</button>
+    </div>
+
+    <div id="map-screen" class="screen" style="background: var(--dune-dark);">
+        <h2>Выберите карту</h2>
+        <div class="grid-select" id="map-list">
+            <!-- Карты подгружаются динамически -->
+        </div>
+        <button class="btn" style="margin-top: 20px;" onclick="startGame()">НАЧАТЬ</button>
+        <button class="btn btn-secondary" onclick="showScreen('char-screen')">Назад к героям</button>
     </div>
 
     <div id="game-screen" class="screen">
@@ -200,11 +221,19 @@
         <button class="btn btn-secondary" onclick="showScreen('menu-screen')">Главное меню</button>
     </div>
 
-    <!-- ЭКРАН ПОБЕДЫ -->
+    <!-- ЭКРАН ПОБЕДЫ НА КАРТЕ -->
     <div id="win-screen" class="screen">
         <div id="win-title">ПОЗДРАВЛЯЕМ!</div>
         <div id="win-text" class="end-reason">Выживание подтверждено!</div>
         <button class="btn" onclick="nextLevel()" id="btn-next-level">Следующая карта</button>
+        <button class="btn btn-secondary" onclick="showScreen('menu-screen')">Главное меню</button>
+    </div>
+
+    <!-- НОВЫЙ ЭКРАН: ИСПЫТАНИЕ ПОЛНОСТЬЮ ПРОЙДЕНО -->
+    <div id="level-complete-screen" class="screen">
+        <div id="complete-title">ИСПЫТАНИЕ ПРОЙДЕНО!</div>
+        <div class="end-reason">Данный выбранный уровень пройден, пора испытать себя в следующих уровнях!</div>
+        <button class="btn" onclick="showScreen('diff-screen')">Выбрать новую сложность</button>
         <button class="btn btn-secondary" onclick="showScreen('menu-screen')">Главное меню</button>
     </div>
 
@@ -217,7 +246,7 @@
         
         let gameState = {
             screen: 'menu', difficulty: 'easy', character: 'Пол',
-            hp: 100, level: 1, mapName: '', isGameOver: false
+            hp: 100, levelIndex: 0, mapName: '', isGameOver: false
         };
 
         const levelConfig = {
@@ -226,7 +255,6 @@
             hard: { wormChance: 0.01, shipChance: 0.02, gravity: 0.7, speed: 7 }
         };
 
-        // БАЗА ДАННЫХ КАРТ: 9 уникальных уровней с разной высотой и ямами
         const mapDatabase = {
             easy: [
                 { name: "Арракис", finish: 3500, data: [{x:0, w:800, dy:150}, {x:1000, w:500, dy:180}, {x:1700, w:400, dy:250}, {x:2300, w:400, dy:150}, {x:2900, w:1000, dy:150}] },
@@ -268,13 +296,33 @@
             element.classList.add('active');
         }
 
+        function goToMapSelect() {
+            let mapContainer = document.getElementById('map-list');
+            mapContainer.innerHTML = ''; 
+            
+            let maps = mapDatabase[gameState.difficulty]; 
+            
+            maps.forEach((map, index) => {
+                let div = document.createElement('div');
+                div.className = 'map-card' + (index === 0 ? ' active' : '');
+                div.innerText = map.name;
+                div.onclick = function() {
+                    gameState.levelIndex = index;
+                    document.querySelectorAll('.map-card').forEach(card => card.classList.remove('active'));
+                    this.classList.add('active');
+                };
+                mapContainer.appendChild(div);
+            });
+            
+            gameState.levelIndex = 0; 
+            showScreen('map-screen');
+        }
+
         function startGame() {
             showScreen('game-screen');
             if (/Android|iPhone/i.test(navigator.userAgent)) {
                 document.getElementById('mobile-ctrl').style.display = 'flex';
             }
-            gameState.level = 1;
-            
             if (animationId) cancelAnimationFrame(animationId);
             initLevel();
             gameLoop();
@@ -288,8 +336,7 @@
             cameraX = 0; hazards = []; ships = []; lasers = [];
             keys = {}; 
             
-            // Генерация текущей карты из Базы Данных
-            let currentMapData = mapDatabase[gameState.difficulty][gameState.level - 1];
+            let currentMapData = mapDatabase[gameState.difficulty][gameState.levelIndex];
             gameState.mapName = currentMapData.name;
             finishLine.x = currentMapData.finish;
 
@@ -297,21 +344,19 @@
                 x: p.x,
                 y: canvas.height - p.dy,
                 w: p.w,
-                h: canvas.height // Платформа уходит вниз до конца экрана
+                h: canvas.height
             }));
 
-            // Обновляем текст на экране
             document.getElementById('status-text').innerText = `Герой: ${gameState.character} | Карта: ${gameState.mapName}`;
         }
 
+        // ИСПРАВЛЕНИЕ: Переход между уровнями без системного alert
         function nextLevel() {
-            if (gameState.level >= 3) {
-                // Если прошел все 3 карты сложности
-                alert("ИСПЫТАНИЕ ПОЛНОСТЬЮ ПРОЙДЕНО! Вы доказали свою силу на Арракисе.");
-                showScreen('menu-screen');
+            if (gameState.levelIndex >= 2) {
+                showScreen('level-complete-screen');
                 return;
             }
-            gameState.level++;
+            gameState.levelIndex++;
             initLevel();
         }
 
@@ -354,8 +399,7 @@
 
             document.getElementById('win-text').innerText = `${gameState.character} ${verbSurvive} на карте "${gameState.mapName}" и ${verbReach} до безопасного места!`;
             
-            // Если это 3-й уровень, меняем текст кнопки
-            if (gameState.level >= 3) {
+            if (gameState.levelIndex >= 2) {
                 document.getElementById('btn-next-level').innerText = "Завершить испытание";
             } else {
                 document.getElementById('btn-next-level').innerText = "Следующая карта";
