@@ -21,7 +21,6 @@
             background-color: var(--dune-dark);
             font-family: 'Segoe UI', sans-serif;
             color: white;
-            /* Отключаем случайные выделения текста при игре на телефоне */
             user-select: none;
             -webkit-user-select: none;
         }
@@ -39,10 +38,15 @@
             z-index: 10;
         }
 
+        /* ИСПРАВЛЕНИЕ ОБЛОЖКИ: Теперь она вмещается полностью (contain) и не обрезается */
         #menu-screen {
             display: flex;
+            background-color: var(--dune-dark);
             background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
             url('https://sun9-80.userapi.com/s/v1/ig2/QE49FDHcGK2A13uZFsRl4nj4rzDuHF9Fc8MHNWJAvPq6KxK4C37kIAYJszjTEcBwftGvXuybNpc2yCKEh7Kz1vvs.jpg?quality=95&as=32x18,48x26,72x40,108x59,160x88,240x132,360x198,480x264,540x298,640x353,720x397,1080x595,1280x705,1440x793,1608x886&from=bu&u=FzGH7cURIf3QVcmlmZKbBX9tSESOVKvi9sXg_KVZoAQ&cs=1608x0');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
         }
 
         .btn {
@@ -129,22 +133,21 @@
             transition: width 0.3s;
         }
 
-        /* ===== НОВОЕ МОБИЛЬНОЕ УПРАВЛЕНИЕ ===== */
         #mobile-ctrl {
             position: absolute;
             bottom: 40px; 
             width: 100%;
-            display: none; /* Скрыто по умолчанию, включается скриптом на телефонах */
+            display: none; 
             justify-content: space-between;
             padding: 0 30px;
             box-sizing: border-box;
             z-index: 50;
-            touch-action: none; /* Запрещает браузеру зумить экран при двойных кликах */
+            touch-action: none; 
         }
 
         .ctrl-group-left {
             display: flex;
-            gap: 20px; /* Расстояние между стрелками влево и вправо */
+            gap: 20px; 
         }
 
         .ctrl-btn {
@@ -156,25 +159,12 @@
             font-size: 35px;
             color: white;
             box-shadow: 0 6px 15px rgba(0,0,0,0.6);
-            -webkit-tap-highlight-color: transparent; /* Убираем синее выделение при тапе на Android */
+            -webkit-tap-highlight-color: transparent; 
         }
 
-        .ctrl-btn:active {
-            transform: scale(0.85); /* Кнопка красиво прожимается */
-        }
-
-        /* Красные кнопки (ходьба) */
-        .btn-red {
-            background: rgba(220, 20, 60, 0.7); 
-            border: 3px solid #ff4d4d;
-        }
-
-        /* Синяя кнопка (прыжок) */
-        .btn-blue {
-            background: rgba(0, 102, 204, 0.7);
-            border: 3px solid #3399ff;
-        }
-        /* ======================================= */
+        .ctrl-btn:active { transform: scale(0.85); }
+        .btn-red { background: rgba(220, 20, 60, 0.7); border: 3px solid #ff4d4d; }
+        .btn-blue { background: rgba(0, 102, 204, 0.7); border: 3px solid #3399ff; }
 
         #death-screen, #win-screen, #level-complete-screen {
             background: rgba(15, 10, 5, 0.95);
@@ -233,7 +223,6 @@
         </div>
         <canvas id="game-canvas"></canvas>
         
-        <!-- МОБИЛЬНОЕ УПРАВЛЕНИЕ -->
         <div id="mobile-ctrl">
             <div class="ctrl-group-left">
                 <div class="ctrl-btn btn-red" id="btn-left">◀</div>
@@ -241,7 +230,6 @@
             </div>
             <div class="ctrl-btn btn-blue" id="btn-up">▲</div>
         </div>
-
     </div>
 
     <div id="death-screen" class="screen">
@@ -348,7 +336,6 @@
 
         function startGame() {
             showScreen('game-screen');
-            // Проверка на мобильное устройство (показываем наши новые кнопки)
             if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
                 document.getElementById('mobile-ctrl').style.display = 'flex';
             }
@@ -388,11 +375,9 @@
             initLevel();
         }
 
-        // --- ЛОГИКА УПРАВЛЕНИЯ (КЛАВИАТУРА И СЕНСОР) ---
         window.addEventListener('keydown', e => keys[e.code] = true);
         window.addEventListener('keyup', e => keys[e.code] = false);
 
-        // Функция привязки касаний с защитой от "залипаний"
         const bindTouch = (id, key) => {
             const btn = document.getElementById(id);
             if(!btn) return;
@@ -400,15 +385,12 @@
             btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; });
             btn.addEventListener('touchcancel', (e) => { e.preventDefault(); keys[key] = false; });
         };
-        
-        bindTouch('btn-left', 'KeyA'); 
-        bindTouch('btn-right', 'KeyD'); 
-        bindTouch('btn-up', 'KeyW');
+        bindTouch('btn-left', 'KeyA'); bindTouch('btn-right', 'KeyD'); bindTouch('btn-up', 'KeyW');
 
         function triggerDeath(reason) {
             if (gameState.isGameOver) return;
             gameState.isGameOver = true;
-            keys = {}; // Сбрасываем кнопки при смерти
+            keys = {}; 
             
             const isFemale = ['Джессика', 'Чани'].includes(gameState.character);
             const verbDead = isFemale ? 'сгинула' : 'сгинул';
@@ -427,7 +409,7 @@
         function triggerWin() {
             if (gameState.isGameOver) return;
             gameState.isGameOver = true;
-            keys = {}; // Сбрасываем кнопки при победе
+            keys = {}; 
             
             const isFemale = ['Джессика', 'Чани'].includes(gameState.character);
             const verbSurvive = isFemale ? 'выжила' : 'выжил';
