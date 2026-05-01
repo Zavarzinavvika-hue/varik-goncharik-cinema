@@ -127,7 +127,6 @@
             user-select: none;
         }
 
-        /* Экраны конца игры */
         #death-screen, #win-screen {
             background: rgba(15, 10, 5, 0.95);
             z-index: 20;
@@ -145,7 +144,8 @@
     <div id="menu-screen" class="screen">
         <h1 style="font-size: 50px; letter-spacing: 10px; color: var(--dune-gold);">ДЮНА</h1>
         <button class="btn" onclick="showScreen('diff-screen')">Начать испытание</button>
-        <button class="btn btn-secondary" onclick="window.location.href='index.html'">Назад в отдых</button>
+        <!-- ИСПРАВЛЕНИЕ: Добавлен параметр ?show=games -->
+        <button class="btn btn-secondary" onclick="window.location.href='index.html?show=games'">Назад в отдых</button>
     </div>
 
     <div id="diff-screen" class="screen" style="background: var(--dune-dark);">
@@ -225,6 +225,8 @@
         let finishLine = { x: 3000, y: 0, w: 50, h: 500 };
         let cameraX = 0;
         let keys = {};
+        
+        let animationId; // ИСПРАВЛЕНИЕ: Переменная для контроля скорости
 
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
@@ -235,9 +237,7 @@
 
         function selectChar(element, c) {
             gameState.character = c;
-            document.querySelectorAll('.char-card').forEach(card => {
-                card.classList.remove('active');
-            });
+            document.querySelectorAll('.char-card').forEach(card => card.classList.remove('active'));
             element.classList.add('active');
         }
 
@@ -247,8 +247,12 @@
                 document.getElementById('mobile-ctrl').style.display = 'flex';
             }
             gameState.level = 1;
+            
+            // ИСПРАВЛЕНИЕ БАГА СКОРОСТИ: Останавливаем предыдущий цикл перед запуском нового
+            if (animationId) cancelAnimationFrame(animationId);
+            
             initLevel();
-            requestAnimationFrame(gameLoop);
+            gameLoop();
         }
 
         function initLevel() {
@@ -257,7 +261,6 @@
             player.x = 100; player.y = 100; player.vx = 0; player.vy = 0; player.state = 'idle';
             gameState.hp = 100; gameState.isGameOver = false;
             cameraX = 0; hazards = []; ships = []; lasers = [];
-            
             keys = {}; 
             
             platforms = [
@@ -304,7 +307,6 @@
             showScreen('death-screen');
         }
 
-        // НОВАЯ ФУНКЦИЯ ПОБЕДЫ С ДИНАМИЧЕСКИМ ТЕКСТОМ
         function triggerWin() {
             if (gameState.isGameOver) return;
             gameState.isGameOver = true;
@@ -313,9 +315,7 @@
             const verbSurvive = isFemale ? 'выжила' : 'выжил';
             const verbReach = isFemale ? 'добралась' : 'добрался';
 
-            const text = `${gameState.character} ${verbSurvive} в песках Арракиса и ${verbReach} до безопасного места!`;
-            
-            document.getElementById('win-text').innerText = text;
+            document.getElementById('win-text').innerText = `${gameState.character} ${verbSurvive} в песках Арракиса и ${verbReach} до безопасного места!`;
             showScreen('win-screen');
         }
 
@@ -350,7 +350,6 @@
 
             cameraX = player.x - canvas.width / 3;
 
-            // Вызов функции победы при достижении финиша
             if (player.x > finishLine.x) {
                 triggerWin();
                 return;
@@ -397,24 +396,27 @@
             document.getElementById('status-text').innerText = `Герой: ${gameState.character} | Уровень: ${gameState.level}`;
         }
 
+        // ИСПРАВЛЕНИЕ: Детальная прорисовка каждого героя отдельно!
         function drawPlayer(ctx, x, y, char, state, frame, dir) {
             ctx.save();
             ctx.translate(x + 15, y + 30);
             ctx.scale(dir, 1); 
 
-            let bodyColor = "#333"; let eyeColor = "#fff"; let extra = null;
+            let bodyColor = "#333"; let eyeColor = "#fff"; let extra = null; let skinColor = "#f1c27d";
             
-            if(char === 'Пол' || char === 'Чани') { bodyColor = "#222"; eyeColor = "#00d2ff"; } 
-            if(char === 'Джессика') { bodyColor = "#8b0000"; extra = 'dress'; } 
-            if(char === 'Лето') { bodyColor = "#2f4f4f"; extra = 'armor'; } 
-            if(char === 'Стилгар') { bodyColor = "#4a3c31"; extra = 'cloak'; } 
-            if(char === 'Барон') { bodyColor = "#111"; extra = 'fat'; } 
-            if(char === 'Император') { bodyColor = "#daa520"; } 
-            if(char === 'Фейд') { bodyColor = "#eee"; eyeColor = "#000"; } 
+            if(char === 'Пол') { bodyColor = "#111"; eyeColor = "#00d2ff"; } 
+            if(char === 'Чани') { bodyColor = "#5c4033"; eyeColor = "#00d2ff"; extra = 'scarf'; } // Коричневый костюм и шарф
+            if(char === 'Джессика') { bodyColor = "#8b0000"; extra = 'dress'; } // Красное платье
+            if(char === 'Лето') { bodyColor = "#2f4f4f"; extra = 'armor'; } // Зеленая броня
+            if(char === 'Стилгар') { bodyColor = "#4a3c31"; extra = 'cloak'; } // Плащ
+            if(char === 'Барон') { bodyColor = "#111"; extra = 'fat'; } // Толстый
+            if(char === 'Император') { bodyColor = "#daa520"; extra = 'crown'; } // Золотой и с короной
+            if(char === 'Фейд') { bodyColor = "#222"; eyeColor = "#000"; skinColor = "#fff"; } // Бледная кожа, черные глаза
 
             let swing = (state === 'run') ? Math.sin(frame) * 20 : 0;
             if (state === 'jump') swing = 20;
 
+            // Рисуем тело
             ctx.fillStyle = bodyColor;
             if (extra === 'fat') {
                 ctx.fillRect(-20, -10, 40, 30); 
@@ -424,20 +426,33 @@
                 ctx.fillRect(-10, -10, 20, 25);
             }
 
+            // Аксессуары на теле
             if (extra === 'armor') { ctx.fillStyle = "#aaa"; ctx.fillRect(-12, -10, 24, 10); }
+            if (extra === 'scarf') { ctx.fillStyle = "#888"; ctx.fillRect(-10, -10, 20, 6); }
 
+            // Ноги
             ctx.strokeStyle = bodyColor; ctx.lineWidth = 6;
             ctx.beginPath(); ctx.moveTo(-5, 15); ctx.lineTo(-5 + swing, 30); ctx.stroke(); 
             ctx.beginPath(); ctx.moveTo(5, 15); ctx.lineTo(5 - swing, 30); ctx.stroke(); 
 
+            // Руки
             ctx.beginPath(); ctx.moveTo(0, -5); ctx.lineTo(10 - swing, 10); ctx.stroke();
 
-            ctx.fillStyle = (char === 'Фейд') ? "#fff" : "#f1c27d";
+            // Голова
+            ctx.fillStyle = skinColor;
             ctx.beginPath(); ctx.arc(0, -20, 10, 0, Math.PI*2); ctx.fill();
             
+            // Глаза
             ctx.fillStyle = eyeColor;
             ctx.fillRect(2, -23, 3, 3); 
 
+            // Корона Императора
+            if (extra === 'crown') {
+                ctx.fillStyle = "gold";
+                ctx.beginPath(); ctx.moveTo(-10,-22); ctx.lineTo(-10,-32); ctx.lineTo(-5,-25); ctx.lineTo(0,-35); ctx.lineTo(5,-25); ctx.lineTo(10,-32); ctx.lineTo(10,-22); ctx.fill();
+            }
+
+            // Левитация Барона
             if (extra === 'fat' && state === 'idle') {
                 ctx.fillStyle = "rgba(0, 200, 255, 0.5)";
                 ctx.fillRect(-10, 30, 20, 5);
@@ -512,7 +527,7 @@
         function gameLoop() {
             update();
             draw();
-            requestAnimationFrame(gameLoop);
+            animationId = requestAnimationFrame(gameLoop); // ИСПРАВЛЕНИЕ: сохраняем ID процесса
         }
 
         window.addEventListener('resize', () => {
