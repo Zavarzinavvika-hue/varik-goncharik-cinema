@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>«Варик Гончарик» - Дюна: Испытание Арракиса</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
@@ -21,6 +21,9 @@
             background-color: var(--dune-dark);
             font-family: 'Segoe UI', sans-serif;
             color: white;
+            /* Отключаем случайные выделения текста при игре на телефоне */
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         .screen {
@@ -126,26 +129,52 @@
             transition: width 0.3s;
         }
 
+        /* ===== НОВОЕ МОБИЛЬНОЕ УПРАВЛЕНИЕ ===== */
         #mobile-ctrl {
             position: absolute;
-            bottom: 30px; width: 100%;
-            display: none;
+            bottom: 40px; 
+            width: 100%;
+            display: none; /* Скрыто по умолчанию, включается скриптом на телефонах */
             justify-content: space-between;
-            padding: 0 40px;
+            padding: 0 30px;
             box-sizing: border-box;
-            z-index: 5;
+            z-index: 50;
+            touch-action: none; /* Запрещает браузеру зумить экран при двойных кликах */
+        }
+
+        .ctrl-group-left {
+            display: flex;
+            gap: 20px; /* Расстояние между стрелками влево и вправо */
         }
 
         .ctrl-btn {
-            width: 70px; height: 70px;
-            background: rgba(255, 255, 255, 0.2);
+            width: 75px; height: 75px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 30px;
-            user-select: none;
+            font-size: 35px;
+            color: white;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.6);
+            -webkit-tap-highlight-color: transparent; /* Убираем синее выделение при тапе на Android */
         }
+
+        .ctrl-btn:active {
+            transform: scale(0.85); /* Кнопка красиво прожимается */
+        }
+
+        /* Красные кнопки (ходьба) */
+        .btn-red {
+            background: rgba(220, 20, 60, 0.7); 
+            border: 3px solid #ff4d4d;
+        }
+
+        /* Синяя кнопка (прыжок) */
+        .btn-blue {
+            background: rgba(0, 102, 204, 0.7);
+            border: 3px solid #3399ff;
+        }
+        /* ======================================= */
 
         #death-screen, #win-screen, #level-complete-screen {
             background: rgba(15, 10, 5, 0.95);
@@ -192,7 +221,6 @@
     <div id="map-screen" class="screen" style="background: var(--dune-dark);">
         <h2>Выберите карту</h2>
         <div class="grid-select" id="map-list">
-            <!-- Карты подгружаются динамически -->
         </div>
         <button class="btn" style="margin-top: 20px;" onclick="startGame()">НАЧАТЬ</button>
         <button class="btn btn-secondary" onclick="showScreen('char-screen')">Назад к героям</button>
@@ -204,16 +232,18 @@
             <div class="hp-bar"><div id="hp-fill"></div></div>
         </div>
         <canvas id="game-canvas"></canvas>
+        
+        <!-- МОБИЛЬНОЕ УПРАВЛЕНИЕ -->
         <div id="mobile-ctrl">
-            <div style="display: flex; gap: 20px;">
-                <div class="ctrl-btn" id="btn-left">◀</div>
-                <div class="ctrl-btn" id="btn-right">▶</div>
+            <div class="ctrl-group-left">
+                <div class="ctrl-btn btn-red" id="btn-left">◀</div>
+                <div class="ctrl-btn btn-red" id="btn-right">▶</div>
             </div>
-            <div class="ctrl-btn" id="btn-up">▲</div>
+            <div class="ctrl-btn btn-blue" id="btn-up">▲</div>
         </div>
+
     </div>
 
-    <!-- ЭКРАН СМЕРТИ -->
     <div id="death-screen" class="screen">
         <div id="death-title">ВЫ ПОГИБЛИ</div>
         <div id="death-reason" class="end-reason">Пески поглотили вас.</div>
@@ -221,7 +251,6 @@
         <button class="btn btn-secondary" onclick="showScreen('menu-screen')">Главное меню</button>
     </div>
 
-    <!-- ЭКРАН ПОБЕДЫ НА КАРТЕ -->
     <div id="win-screen" class="screen">
         <div id="win-title">ПОЗДРАВЛЯЕМ!</div>
         <div id="win-text" class="end-reason">Выживание подтверждено!</div>
@@ -229,7 +258,6 @@
         <button class="btn btn-secondary" onclick="showScreen('menu-screen')">Главное меню</button>
     </div>
 
-    <!-- НОВЫЙ ЭКРАН: ИСПЫТАНИЕ ПОЛНОСТЬЮ ПРОЙДЕНО -->
     <div id="level-complete-screen" class="screen">
         <div id="complete-title">ИСПЫТАНИЕ ПРОЙДЕНО!</div>
         <div class="end-reason">Данный выбранный уровень пройден, пора испытать себя в следующих уровнях!</div>
@@ -320,7 +348,8 @@
 
         function startGame() {
             showScreen('game-screen');
-            if (/Android|iPhone/i.test(navigator.userAgent)) {
+            // Проверка на мобильное устройство (показываем наши новые кнопки)
+            if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
                 document.getElementById('mobile-ctrl').style.display = 'flex';
             }
             if (animationId) cancelAnimationFrame(animationId);
@@ -350,7 +379,6 @@
             document.getElementById('status-text').innerText = `Герой: ${gameState.character} | Карта: ${gameState.mapName}`;
         }
 
-        // ИСПРАВЛЕНИЕ: Переход между уровнями без системного alert
         function nextLevel() {
             if (gameState.levelIndex >= 2) {
                 showScreen('level-complete-screen');
@@ -360,20 +388,27 @@
             initLevel();
         }
 
+        // --- ЛОГИКА УПРАВЛЕНИЯ (КЛАВИАТУРА И СЕНСОР) ---
         window.addEventListener('keydown', e => keys[e.code] = true);
         window.addEventListener('keyup', e => keys[e.code] = false);
 
+        // Функция привязки касаний с защитой от "залипаний"
         const bindTouch = (id, key) => {
             const btn = document.getElementById(id);
             if(!btn) return;
             btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; });
             btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; });
+            btn.addEventListener('touchcancel', (e) => { e.preventDefault(); keys[key] = false; });
         };
-        bindTouch('btn-left', 'KeyA'); bindTouch('btn-right', 'KeyD'); bindTouch('btn-up', 'KeyW');
+        
+        bindTouch('btn-left', 'KeyA'); 
+        bindTouch('btn-right', 'KeyD'); 
+        bindTouch('btn-up', 'KeyW');
 
         function triggerDeath(reason) {
             if (gameState.isGameOver) return;
             gameState.isGameOver = true;
+            keys = {}; // Сбрасываем кнопки при смерти
             
             const isFemale = ['Джессика', 'Чани'].includes(gameState.character);
             const verbDead = isFemale ? 'сгинула' : 'сгинул';
@@ -392,6 +427,7 @@
         function triggerWin() {
             if (gameState.isGameOver) return;
             gameState.isGameOver = true;
+            keys = {}; // Сбрасываем кнопки при победе
             
             const isFemale = ['Джессика', 'Чани'].includes(gameState.character);
             const verbSurvive = isFemale ? 'выжила' : 'выжил';
