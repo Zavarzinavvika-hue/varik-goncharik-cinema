@@ -466,8 +466,7 @@
                     // НОВАЯ СИСТЕМА КОМБО: 3 удара рукой ИЛИ 3 удара ногой
                     let comboStr = this.comboHistory.join(',');
                     if (comboStr === 'punch,punch,punch' || comboStr === 'kick,kick,kick') {
-                        this.fatalityCharge += 50; 
-                        if (this.fatalityCharge > 100) this.fatalityCharge = 100;
+                        this.fatalityCharge = 100; // <--- СРАЗУ 100% ЗАРЯДА
                         this.comboHistory = [];
                         updateUI(); 
                     } else if (this.comboHistory.length >= 3) {
@@ -576,7 +575,7 @@
                 document.getElementById('p1-f-text').innerText = "ФАТАЛИТИ!";
                 document.getElementById('p1-f-text').style.color = "red";
             } else {
-                document.getElementById('p1-f-text').innerText = p1.fatalityCharge >= 100 ? "ГОТОВО! (ЛКМ + ПКМ)" : `КОМБО: ${p1.fatalityCharge}%`;
+                document.getElementById('p1-f-text').innerText = p1.fatalityCharge >= 100 ? "ГОТОВО! (ЛКМ + ПКМ)" : ""; // Если 100, пишет ГОТОВО
                 document.getElementById('p1-f-text').style.color = "white";
             }
         }
