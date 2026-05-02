@@ -239,7 +239,6 @@
         <div id="countdown-text">10</div>
     </div>
 
-    <!-- МОБИЛЬНЫЕ КНОПКИ БУДУТ ПОКАЗЫВАТЬСЯ ТОЛЬКО НА ТЕЛЕФОНЕ И ТОЛЬКО ВО ВРЕМЯ ГОНКИ -->
     <div id="mobile-ctrl">
         <div class="ctrl-group-left">
             <div class="ctrl-btn" id="btn-brake">▼</div>
@@ -479,8 +478,9 @@
                 this.maxSpeed = 16;
                 this.accel = isPlayer ? 0.35 : 0.28 + (Math.random()*0.05); 
                 this.friction = 0.96;
-                this.turnSpeed = 0.08; 
+                this.turnSpeed = 0.11; // ИИ научился лучше рулить
                 
+                // Целимся в 0 (финишную черту) для правильного старта
                 this.targetWp = 0; 
                 this.hasStarted = false; 
                 this.laps = 0;
@@ -490,8 +490,8 @@
                 this.boost = 0; 
                 this.isBoosting = false;
                 
-                // Возвращаем стабильный ИИ (чтобы не улетали)
-                this.aiBaseOffset = (Math.random() - 0.5) * (TRACK_WIDTH - 120); 
+                // Маленький разброс, чтобы ИИ держался центра трассы
+                this.aiBaseOffset = (Math.random() - 0.5) * 60; 
                 this.finishTime = null;
             }
 
@@ -503,7 +503,7 @@
                     if (keys['KeyS']) this.speed -= this.accel * 1.5;
                     
                     if (Math.abs(this.speed) > 0.5) {
-                        let tSpeed = this.turnSpeed * (Math.abs(this.speed) / this.maxSpeed);
+                        let tSpeed = 0.08 * (Math.abs(this.speed) / this.maxSpeed);
                         if (keys['KeyA']) this.angle -= Math.max(tSpeed, 0.03);
                         if (keys['KeyD']) this.angle += Math.max(tSpeed, 0.03);
                     }
@@ -517,10 +517,14 @@
                         if (this.boost <= 0) { this.boost = 0; this.isBoosting = false; }
                     }
                 } else {
-                    // СТАБИЛЬНЫЙ ИИ
+                    // ИДЕАЛЬНЫЙ ИИ
                     if(state.racePhase === 'racing' && !this.finishTime) {
                         let target = waypoints[this.targetWp];
-                        let currentOffset = this.onTrack ? this.aiBaseOffset : 0; 
+                        let nextTarget = waypoints[(this.targetWp + 1) % waypoints.length];
+
+                        // Плавно убираем разброс при подъезде к точке, чтобы целиться точно в апекс
+                        let offsetFactor = Math.min(1, this.distanceToNext / 200);
+                        let currentOffset = this.onTrack ? (this.aiBaseOffset * offsetFactor) : 0; 
                         
                         let tAngle = Math.atan2(target.y - this.y, target.x - this.x);
                         let targetX = target.x + Math.cos(tAngle + Math.PI/2) * currentOffset;
@@ -532,17 +536,28 @@
                         while (aDiff > Math.PI) aDiff -= Math.PI*2;
                         while (aDiff < -Math.PI) aDiff += Math.PI*2;
                         
+                        // ИИ поворачивает очень резко, чтобы не вылетать
                         this.angle += Math.sign(aDiff) * Math.min(Math.abs(aDiff), this.turnSpeed);
+
+                        // ПРЕДВИДЕНИЕ ПОВОРОТА: смотрим, куда идет трасса дальше
+                        let nextSegmentAngle = Math.atan2(nextTarget.y - target.y, nextTarget.x - target.x);
+                        let nextDiff = nextSegmentAngle - this.angle;
+                        while (nextDiff > Math.PI) nextDiff -= Math.PI*2;
+                        while (nextDiff < -Math.PI) nextDiff += Math.PI*2;
+
+                        // Если до поворота меньше 350 пикселей, начинаем жестко оттормаживаться
+                        let brakeFactor = Math.abs(aDiff) * 1.5;
+                        if (this.distanceToNext < 350) {
+                            brakeFactor = Math.max(brakeFactor, Math.abs(nextDiff) * 2.0);
+                        }
                         
-                        // Простое и надежное торможение на поворотах
-                        let cornerSlowdown = Math.max(0.4, 1 - Math.abs(aDiff)); 
+                        let cornerSlowdown = Math.max(0.25, 1 - brakeFactor); 
                         this.speed += this.accel * cornerSlowdown;
                     } else {
                         this.speed *= 0.95; 
                     }
                 }
 
-                // Физика
                 this.speed *= this.friction;
                 let currentMax = this.isBoosting ? this.maxSpeed * 1.4 : this.maxSpeed;
                 if (this.speed > currentMax) this.speed = currentMax;
@@ -560,7 +575,6 @@
                 this.x += Math.cos(this.angle) * this.speed;
                 this.y += Math.sin(this.angle) * this.speed;
 
-                // Коллизия (машины толкаются)
                 cars.forEach(other => {
                     if (other !== this) {
                         let dx = this.x - other.x;
@@ -576,7 +590,6 @@
                     }
                 });
 
-                // ГИБРИДНЫЕ ЧЕКПОИНТЫ (не пропустят ни одного)
                 let targetWpNode = waypoints[this.targetWp];
                 let prev = waypoints[(this.targetWp - 1 + waypoints.length) % waypoints.length];
                 
@@ -588,8 +601,7 @@
                 let dot = trackVx * carVx + trackVy * carVy;
                 this.distanceToNext = Math.hypot(targetWpNode.x - this.x, targetWpNode.y - this.y);
                 
-                // Пересекаем точку если перешли линию ИЛИ достаточно близко (магнит)
-                if (dot <= 0 || this.distanceToNext < 300) {
+                if (dot <= 0 || this.distanceToNext < TRACK_WIDTH * 0.8) {
                     if (this.targetWp === 0) { 
                         if (!this.hasStarted) {
                             this.hasStarted = true; 
