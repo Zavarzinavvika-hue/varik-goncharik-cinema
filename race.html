@@ -102,6 +102,7 @@
         .results-table { background: #111; padding: 20px; border-radius: 10px; border: 2px solid var(--main-color); margin-bottom: 20px; width: 90%; max-width: 650px;}
         .res-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #333; font-size: 18px;}
         
+        /* Выравнивание колонок в итоговой таблице */
         .res-row span:nth-child(1) { width: 40px; text-align: left; }
         .res-row span:nth-child(2) { flex: 1; text-align: left; padding-left: 10px;}
         .res-row span:nth-child(3) { width: 150px; text-align: right; }
@@ -115,6 +116,7 @@
 </head>
 <body>
 
+    <!-- Главное меню -->
     <div id="main-menu" class="screen active-screen">
         <div class="logo-container">
             <img src="https://sun9-73.userapi.com/s/v1/ig2/TtIRYLEzXJ1SNcF4h-1ubN0QXML7d6PvmMFDMzOU5yCuLQNnGoaMglXka5yCc9S1BstpEKplcJWNb7HYG60yhP6L.jpg?quality=95&as=32x18,48x27,72x40,108x60,160x89,240x134,360x201,480x268,540x301,640x357,720x402,1080x603,1280x714,1376x768&from=bu&u=oY74HXwdRJtvhLJFhTLtqeG0P-9ijkrlNGBJaN7kSc4&cs=1376x0" alt="Логотип">
@@ -123,6 +125,7 @@
         <button class="btn btn-secondary" onclick="alert('Браузерная версия. Обновите страницу для выхода.')">Выход</button>
     </div>
 
+    <!-- Выбор команды -->
     <div id="team-select" class="screen">
         <h2>Выберите команду</h2>
         <div class="grid-container" id="teams-grid"></div>
@@ -132,6 +135,7 @@
         </div>
     </div>
 
+    <!-- Выбор гонщика -->
     <div id="driver-select" class="screen">
         <h2>Выберите гонщика</h2>
         <div class="grid-container" id="drivers-grid"></div>
@@ -141,6 +145,7 @@
         </div>
     </div>
 
+    <!-- Выбор трассы -->
     <div id="track-select" class="screen">
         <h2>Выберите трассу</h2>
         <div class="grid-container" id="tracks-grid"></div>
@@ -150,6 +155,7 @@
         </div>
     </div>
 
+    <!-- Подготовка к заезду -->
     <div id="mode-select" class="screen">
         <h2>Подготовка к Гран-при</h2>
         <h3 id="final-setup-info" style="color: #aaa; margin-bottom: 30px;"></h3>
@@ -158,6 +164,7 @@
         <button class="btn btn-secondary" onclick="showScreen('track-select')" style="margin-top: 20px;">Назад</button>
     </div>
 
+    <!-- Игровой холст -->
     <canvas id="game-canvas"></canvas>
     
     <div id="game-ui">
@@ -178,6 +185,7 @@
         </div>
     </div>
 
+    <!-- Окно Итогов -->
     <div id="results-overlay">
         <h2 id="res-title" style="font-size: 40px; color: var(--main-color); text-transform: uppercase;">Итоги</h2>
         <div class="results-table" id="res-table"></div>
@@ -371,6 +379,7 @@
                 let wp0 = waypoints[0], wp1 = waypoints[1];
                 let angle = Math.atan2(wp1.y - wp0.y, wp1.x - wp0.x);
                 
+                // Расставляем машины на стартовой решетке сзади от Поворота №1 (wp1)
                 let offsetX = Math.cos(angle + Math.PI/2) * (startPosIdx % 2 === 0 ? -40 : 40);
                 let backOffset = Math.floor(startPosIdx / 2) * 140 + 80; 
                 
@@ -382,17 +391,17 @@
                 this.maxSpeed = 16;
                 this.accel = isPlayer ? 0.35 : 0.28 + (Math.random()*0.05); 
                 this.friction = 0.96;
-                this.turnSpeed = 0.08; // Увеличен радиус поворота
+                this.turnSpeed = 0.08; 
                 
-                this.targetWp = 0; 
-                this.hasStarted = false; 
+                // ВАЖНО: Целимся в Поворот №1 сразу со старта
+                this.targetWp = 1; 
                 this.laps = 0;
                 this.distanceToNext = 0;
+                this.onTrack = true;
                 
                 this.boost = 0; 
                 this.isBoosting = false;
                 
-                // Чтобы боты не вылетали в траву, держим их ближе к центру (ширина урезана до 120)
                 this.aiBaseOffset = (Math.random() - 0.5) * (TRACK_WIDTH - 120); 
                 this.finishTime = null;
             }
@@ -401,7 +410,7 @@
                 if (state.raceFinished && this.isPlayer) {
                     this.speed *= 0.95; 
                 } else if (this.isPlayer) {
-                    // ИГРОК
+                    // Управление игрока
                     if (keys['KeyW']) this.speed += this.accel;
                     if (keys['KeyS']) this.speed -= this.accel * 1.5;
                     
@@ -420,19 +429,16 @@
                         if (this.boost <= 0) { this.boost = 0; this.isBoosting = false; }
                     }
                 } else {
-                    // УМНЫЙ ИИ
+                    // Управление ИИ (Исправленное)
                     if(!state.raceFinished || !this.finishTime) {
-                        let steerWpIdx = this.targetWp;
+                        let target = waypoints[this.targetWp];
                         
-                        // ИИ ищет апекс заранее, чтобы не вылететь на траву
-                        if (this.distanceToNext < 400) {
-                            steerWpIdx = (this.targetWp + 1) % waypoints.length;
-                        }
+                        // Если бот вылетел на траву, он отменяет offset и агрессивно едет в центр трассы
+                        let currentOffset = this.onTrack ? this.aiBaseOffset : 0;
                         
-                        let target = waypoints[steerWpIdx];
                         let tAngle = Math.atan2(target.y - this.y, target.x - this.x);
-                        let targetX = target.x + Math.cos(tAngle + Math.PI/2) * this.aiBaseOffset;
-                        let targetY = target.y + Math.sin(tAngle + Math.PI/2) * this.aiBaseOffset;
+                        let targetX = target.x + Math.cos(tAngle + Math.PI/2) * currentOffset;
+                        let targetY = target.y + Math.sin(tAngle + Math.PI/2) * currentOffset;
                         
                         let desiredAngle = Math.atan2(targetY - this.y, targetX - this.x);
                         let aDiff = desiredAngle - this.angle;
@@ -440,11 +446,11 @@
                         while (aDiff > Math.PI) aDiff -= Math.PI*2;
                         while (aDiff < -Math.PI) aDiff += Math.PI*2;
                         
-                        // Руль
+                        // ИИ поворачивает всегда, даже если медленно едет
                         this.angle += Math.sign(aDiff) * Math.min(Math.abs(aDiff), this.turnSpeed);
                         
-                        // Тормозим перед резким поворотом
-                        let cornerSlowdown = Math.max(0.3, 1 - Math.abs(aDiff)*1.8); 
+                        // Притормаживает перед крутым поворотом
+                        let cornerSlowdown = Math.max(0.3, 1 - Math.abs(aDiff)*2.0); 
                         this.speed += this.accel * cornerSlowdown;
                     } else {
                         this.speed *= 0.95; 
@@ -457,61 +463,48 @@
                 if (this.speed > currentMax) this.speed = currentMax;
                 if (this.speed < -5) this.speed = -5;
 
-                // Вылет на траву
-                let onTrack = false;
+                // Проверка: на асфальте или на траве
+                this.onTrack = false;
                 for(let i=0; i<waypoints.length; i++) {
                     let p1 = waypoints[i], p2 = waypoints[(i+1)%waypoints.length];
                     if (distToSegment(this.x, this.y, p1.x, p1.y, p2.x, p2.y) < TRACK_WIDTH / 2) {
-                        onTrack = true; break;
+                        this.onTrack = true; break;
                     }
                 }
-                if (!onTrack) this.speed *= 0.85; 
+                // Трава замедляет
+                if (!this.onTrack) this.speed *= 0.85; 
 
                 this.x += Math.cos(this.angle) * this.speed;
                 this.y += Math.sin(this.angle) * this.speed;
 
-                // --- КОЛЛИЗИЯ (Отталкивание машин) ---
+                // Коллизия (машины толкаются)
                 cars.forEach(other => {
                     if (other !== this) {
                         let dx = this.x - other.x;
                         let dy = this.y - other.y;
                         let distSq = dx*dx + dy*dy;
-                        if (distSq < 1000 && distSq > 0) { // Дистанция контакта ~31 пикс
+                        if (distSq < 1000 && distSq > 0) { 
                             let dist = Math.sqrt(distSq);
                             let overlap = 32 - dist;
                             this.x += (dx / dist) * overlap * 0.1;
                             this.y += (dy / dist) * overlap * 0.1;
-                            this.speed *= 0.99; // Легкая потеря скорости
+                            this.speed *= 0.99;
                         }
                     }
                 });
 
-                // --- ВЕКТОРНЫЕ ЧЕКПОИНТЫ ---
+                // --- НОВАЯ СИСТЕМА ЧЕКПОИНТОВ (РАДИУСНАЯ) ---
+                // Захватываем точку, если подъехали к ней достаточно близко (280 пикселей)
                 let targetWpNode = waypoints[this.targetWp];
-                let prev = waypoints[(this.targetWp - 1 + waypoints.length) % waypoints.length];
+                this.distanceToNext = Math.hypot(targetWpNode.x - this.x, targetWpNode.y - this.y);
                 
-                let trackVx = targetWpNode.x - prev.x;
-                let trackVy = targetWpNode.y - prev.y;
-                let carVx = targetWpNode.x - this.x;
-                let carVy = targetWpNode.y - this.y;
-                
-                // Пересечение невидимой линии (Dot Product)
-                let dot = trackVx * carVx + trackVy * carVy;
-                
-                if (dot <= 0) {
-                    if (this.targetWp === 0) {
-                        if (!this.hasStarted) {
-                            this.hasStarted = true; 
-                        } else {
-                            this.laps++;
-                            checkLapProgress(this);
-                        }
+                if (this.distanceToNext < 280) {
+                    if (this.targetWp === 0) { // Пересекли Финиш (нулевую точку)
+                        this.laps++;
+                        checkLapProgress(this);
                     }
                     this.targetWp = (this.targetWp + 1) % waypoints.length;
                 }
-                
-                let segLenSq = trackVx*trackVx + trackVy*trackVy;
-                this.distanceToNext = (carVx * trackVx + carVy * trackVy) / Math.sqrt(segLenSq);
             }
 
             draw(ctx) {
@@ -544,6 +537,7 @@
             }
         }
 
+        // КРАСИВЫЕ МИЛЛИСЕКУНДЫ (Строго до тысячных)
         function formatTime(ms) {
             ms = Math.floor(ms); 
             let mins = Math.floor(ms / 60000);
@@ -627,7 +621,7 @@
                 car.finishTime = Date.now() - state.timeParams.start;
                 if (car.isPlayer) {
                     state.raceFinished = true;
-                    setTimeout(showResults, 1000); 
+                    setTimeout(showResults, 1500); // Небольшая задержка перед окном итогов
                 }
             }
         }
@@ -638,6 +632,7 @@
                 if (a.finishTime) return -1;
                 if (b.finishTime) return 1;
                 
+                // Измененная логика позиций (учитывает текущий круг и цель)
                 let wpScoreA = a.targetWp === 0 ? waypoints.length : a.targetWp;
                 let wpScoreB = b.targetWp === 0 ? waypoints.length : b.targetWp;
                 
@@ -649,7 +644,7 @@
             let html = '';
             sorted.forEach((c, idx) => {
                 let currentLap = Math.min(3, c.laps + 1);
-                let lapStr = (state.session === 'race' && !c.finishTime && c.hasStarted) ? ` (Круг ${currentLap})` : '';
+                let lapStr = (state.session === 'race' && !c.finishTime) ? ` (Круг ${currentLap})` : '';
                 html += `<div class="standings-row ${c.isPlayer ? 'player' : ''}">
                             <span style="color:${c.color}">${idx+1}. ${c.name.split(' ')[1] || c.name}${lapStr}</span>
                          </div>`;
