@@ -64,19 +64,19 @@
             padding: 10px 20px; box-sizing: border-box; z-index: 20; background: linear-gradient(rgba(0,0,0,0.8), transparent);
         }
 
-        .player-info { display: flex; flex-direction: column; }
-        .player-info.right { align-items: flex-end; }
+        .player-info { display: flex; flex-direction: column; width: 35%; }
+        .player-info.right { align-items: flex-end; text-align: right; }
         .name { font-size: 18px; font-weight: bold; color: var(--gold); text-transform: uppercase; margin-bottom: 5px; text-shadow: 1px 1px 2px black;}
         
-        .hearts { display: flex; gap: 5px; }
-        .heart { font-size: 20px; color: #555; } 
+        .hearts { display: flex; flex-wrap: wrap; gap: 3px; max-width: 100%;}
+        .heart { font-size: 18px; color: #555; } 
         .heart.full { color: var(--mortal-red); text-shadow: 0 0 5px red;}
 
         .fatality-bar { width: 150px; height: 10px; background: #333; margin-top: 5px; border: 1px solid #000; position: relative;}
         .fatality-fill { width: 0%; height: 100%; background: #00d2ff; transition: width 0.3s; box-shadow: 0 0 10px #00d2ff;}
         .fatality-text { position: absolute; width: 100%; text-align: center; top: -2px; font-size: 10px; color: white; font-weight: bold; text-shadow: 1px 1px 1px black; }
 
-        .timer-box { text-align: center; }
+        .timer-box { text-align: center; width: 20%; }
         .timer { font-size: 40px; font-weight: 900; color: white; text-shadow: 0 0 10px var(--mortal-red); }
         .round { font-size: 14px; color: var(--gold); text-transform: uppercase; font-weight: bold;}
         .wins-counter { font-size: 14px; color: white; text-transform: uppercase; margin-top: 5px; }
@@ -232,6 +232,7 @@
                 if (type === 'shield') { this.w = 30; this.h = 30; this.returnTimer = 40; }
                 if (type === 'axe') { this.w = 30; this.h = 30; }
                 if (type === 'plasma') { this.w = 25; this.h = 25; }
+                if (type === 'predator_blast') { this.w = 20; this.h = 20; }
                 if (type === 'grenade') { this.w = 15; this.h = 15; }
             }
 
@@ -256,6 +257,10 @@
                 if (this.type === 'laser') { ctx.fillStyle = 'red'; ctx.fillRect(0, 0, this.w, this.h); }
                 if (this.type === 'beam') { ctx.fillStyle = '#00d2ff'; ctx.fillRect(0, 0, this.w, this.h); }
                 if (this.type === 'plasma') { ctx.fillStyle = '#39ff14'; ctx.beginPath(); ctx.arc(10, 10, 15, 0, Math.PI*2); ctx.fill(); }
+                if (this.type === 'predator_blast') { 
+                    ctx.fillStyle = '#b026ff'; ctx.beginPath(); ctx.arc(10, 10, 10, 0, Math.PI*2); ctx.fill(); 
+                    ctx.shadowColor = '#b026ff'; ctx.shadowBlur = 15; ctx.fill(); ctx.shadowBlur = 0;
+                }
                 if (this.type === 'grenade') { ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(7, 7, 8, 0, Math.PI*2); ctx.fill(); }
                 
                 if (this.type === 'shield') { 
@@ -285,7 +290,7 @@
 
                 this.vx = 0; this.vy = 0; this.speed = heroName === 'Халк' ? 3.5 : 5;
                 this.jumpPower = -15; this.gravity = 0.8; this.grounded = false;
-                this.hp = 5; this.facingRight = isPlayer; 
+                this.hp = 10; this.facingRight = isPlayer; 
                 
                 this.isAttacking = false; this.attackType = null; this.attackTimer = 0;
                 
@@ -373,13 +378,6 @@
                     ctx.beginPath(); ctx.moveTo(-10, 0); ctx.quadraticCurveTo(-60, 20, -50 + swing/2, -30); ctx.stroke();
                 }
 
-                // Хвост хищника (Фаталити)
-                if (this.isFatalityMode && isPredator) {
-                    ctx.strokeStyle = "#5c4033"; ctx.lineWidth = 12;
-                    ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(-60, 20, -100, -20); ctx.stroke();
-                    ctx.fillStyle = "silver"; ctx.fillRect(-90, -10, 5, 15); ctx.fillRect(-100, -20, 5, 15);
-                }
-
                 // ЗАДНЯЯ НОГА
                 ctx.fillStyle = legC;
                 ctx.save(); ctx.translate(0, torsoH/2 - 5); ctx.rotate(-swing * Math.PI/180); ctx.fillRect(-legW/2, 0, legW, legH); ctx.restore();
@@ -397,6 +395,7 @@
                 if (isBatman) { ctx.fillStyle = "yellow"; ctx.fillRect(-torsoW/2, torsoH/2 - 10, torsoW, 10); } 
                 if (isSuperman) { ctx.fillStyle = "yellow"; ctx.beginPath(); ctx.moveTo(0, -torsoH/4); ctx.lineTo(10, 0); ctx.lineTo(-5, 0); ctx.fill(); ctx.fillStyle = "red"; ctx.fillRect(2, -torsoH/4 + 2, 4, 4); }
                 if (isThor) { ctx.fillStyle = "silver"; ctx.beginPath(); ctx.arc(5, -torsoH/4, 6, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(-5, 0, 6, 0, Math.PI*2); ctx.fill(); }
+                if (isPredator) { ctx.fillStyle = "silver"; ctx.fillRect(10, -torsoH/2 - 5, 10, 10); } // Наплечная пушка
 
                 // ГОЛОВА
                 ctx.fillStyle = headC;
@@ -437,11 +436,11 @@
                 if (isPunching) {
                     ctx.rotate(-Math.PI/2); ctx.fillRect(-armW/2, 0, armW, armH + 10);
                     if (hasShield) { ctx.fillStyle = "red"; ctx.beginPath(); ctx.arc(armH, 0, 14, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = "white"; ctx.beginPath(); ctx.arc(armH, 0, 6, 0, Math.PI*2); ctx.fill(); }
-                    if (isThor) { ctx.fillStyle = "#777"; ctx.fillRect(armH, -15, 10, 30); ctx.fillStyle = "#555"; ctx.fillRect(armH-10, -15, 30, 15); }
+                    if (isThor && !this.isFatalityMode) { ctx.fillStyle = "#777"; ctx.fillRect(armH, -15, 10, 30); ctx.fillStyle = "#555"; ctx.fillRect(armH-10, -15, 30, 15); }
                 } else {
                     ctx.rotate(-swing * Math.PI/180); ctx.fillRect(-armW/2, 0, armW, armH); 
                     if (hasShield) { ctx.fillStyle = "red"; ctx.beginPath(); ctx.arc(0, armH/2, 14, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = "white"; ctx.beginPath(); ctx.arc(0, armH/2, 6, 0, Math.PI*2); ctx.fill(); }
-                    if (isThor) { ctx.fillStyle = "#777"; ctx.fillRect(-5, armH, 10, 30); ctx.fillStyle = "#555"; ctx.fillRect(-15, armH+20, 30, 15); }
+                    if (isThor && !this.isFatalityMode) { ctx.fillStyle = "#777"; ctx.fillRect(-5, armH, 10, 30); ctx.fillStyle = "#555"; ctx.fillRect(-15, armH+20, 30, 15); }
                 }
                 ctx.restore();
 
@@ -466,7 +465,7 @@
                     // НОВАЯ СИСТЕМА КОМБО: 3 удара рукой ИЛИ 3 удара ногой
                     let comboStr = this.comboHistory.join(',');
                     if (comboStr === 'punch,punch,punch' || comboStr === 'kick,kick,kick') {
-                        this.fatalityCharge = 100; // <--- СРАЗУ 100% ЗАРЯДА
+                        this.fatalityCharge = 100; // Сразу 100% за комбо!
                         this.comboHistory = [];
                         updateUI(); 
                     } else if (this.comboHistory.length >= 3) {
@@ -481,7 +480,9 @@
             }
 
             useFatalityAttack() {
-                if (this.fatalityCooldown > 0) return;
+                // Тор не имеет кулдауна, остальные имеют паузу между бросками
+                if (this.fatalityCooldown > 0 && this.heroName !== 'Тор') return;
+                
                 let dir = this.facingRight ? 1 : -1;
                 
                 if (this.heroName === 'Железный человек') projectiles.push(new Projectile(this.x + this.width/2, this.y + this.height, 0, 15, 'beam', this));
@@ -490,6 +491,7 @@
                 else if (this.heroName === 'Капитан Америка') projectiles.push(new Projectile(this.x + this.width/2, this.y + 40, dir * 18, 0, 'shield', this));
                 else if (this.heroName === 'Тор') projectiles.push(new Projectile(this.x + this.width/2, this.y + 40, dir * 15, 0, 'axe', this));
                 else if (this.heroName === 'Чужой') projectiles.push(new Projectile(this.x + (this.facingRight ? this.width : -20), this.y + 20, dir * 25, 0, 'plasma', this));
+                else if (this.heroName === 'Хищник') projectiles.push(new Projectile(this.x + (this.facingRight ? this.width : -20), this.y + 20, dir * 25, 0, 'predator_blast', this));
                 
                 this.fatalityCooldown = 30; 
             }
@@ -529,9 +531,6 @@
                     box.x = this.facingRight ? this.x + this.width : this.x - box.w;
                     box.y = this.y + this.height/2; 
                 }
-
-                if (this.isFatalityMode && this.heroName === 'Хищник') box.w = 160; 
-
                 return box;
             }
 
@@ -557,10 +556,10 @@
         let p1, p2, groundY = 0;
 
         function updateUI() {
-            let p1Html = ''; for(let i=1; i<=5; i++) p1Html += `<span class="heart ${i <= p1.hp ? 'full' : ''}">❤</span>`;
+            let p1Html = ''; for(let i=1; i<=10; i++) p1Html += `<span class="heart ${i <= p1.hp ? 'full' : ''}">❤</span>`;
             document.getElementById('p1-hearts').innerHTML = p1Html;
 
-            let p2Html = ''; for(let i=1; i<=5; i++) p2Html += `<span class="heart ${i <= p2.hp ? 'full' : ''}">❤</span>`;
+            let p2Html = ''; for(let i=1; i<=10; i++) p2Html += `<span class="heart ${i <= p2.hp ? 'full' : ''}">❤</span>`;
             document.getElementById('p2-hearts').innerHTML = p2Html;
 
             document.getElementById('p1-wins').innerText = `Побед: ${matchState.p1Wins}`;
@@ -575,15 +574,24 @@
                 document.getElementById('p1-f-text').innerText = "ФАТАЛИТИ!";
                 document.getElementById('p1-f-text').style.color = "red";
             } else {
-                document.getElementById('p1-f-text').innerText = p1.fatalityCharge >= 100 ? "ГОТОВО! (ЛКМ + ПКМ)" : ""; // Если 100, пишет ГОТОВО
+                document.getElementById('p1-f-text').innerText = p1.fatalityCharge >= 100 ? "ГОТОВО! (ЛКМ + ПКМ)" : "";
                 document.getElementById('p1-f-text').style.color = "white";
             }
         }
 
         function applyDamage(target, attacker, isProjectile = false, projType = '') {
             let dmg = 1;
-            if (attacker.isFatalityMode && (attacker.heroName === 'Халк' || attacker.heroName === 'Хищник')) dmg = 3;
-            if (isProjectile && projType === 'plasma') dmg = 5;
+            if (attacker.isFatalityMode && attacker.heroName === 'Халк') dmg = 3;
+            
+            if (isProjectile) {
+                if (projType === 'plasma') dmg = 5;
+                if (projType === 'predator_blast') dmg = 4;
+                if (projType === 'beam') dmg = 3;
+                if (projType === 'grenade') dmg = 3;
+                if (projType === 'axe') dmg = 2;
+                if (projType === 'shield') dmg = 2;
+                if (projType === 'laser') dmg = 2;
+            }
 
             target.hp -= dmg;
             target.vx = (attacker.x < target.x) ? 15 : -15; 
@@ -739,4 +747,3 @@
     </script>
 </body>
 </html>
-
