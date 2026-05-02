@@ -232,7 +232,7 @@
 
         // --- ЛОГИКА ПАУЗЫ ---
         function togglePause() {
-            if (!matchState.isPlaying && !matchState.isPaused) return; // Нельзя ставить паузу если бой еще не идет или уже кончился
+            if (!matchState.isPlaying && !matchState.isPaused) return; 
             
             matchState.isPaused = !matchState.isPaused;
             
@@ -245,6 +245,7 @@
             } else {
                 overlay.style.display = "none";
                 document.getElementById('btn-resume').style.display = "none";
+                document.getElementById('btn-menu-return').style.display = "none";
             }
         }
 
@@ -451,7 +452,6 @@
                 ctx.save(); 
                 ctx.translate(0, torsoH/2 - 5); 
                 if (isKicking) {
-                    // ИСПРАВЛЕНИЕ: Немного увеличиваем длину и угол ноги при ударе
                     ctx.rotate(-Math.PI/2.2); ctx.fillRect(-legW/2, 0, legW, legH + 20); 
                 } else {
                     ctx.rotate(swing * Math.PI/180); ctx.fillRect(-legW/2, 0, legW, legH); 
@@ -627,7 +627,11 @@
             target.vx = (attacker.x < target.x) ? 15 : -15; 
             target.vy = -5; 
             updateUI();
-            checkRoundEnd();
+            
+            // Защита: вызываем конец раунда только если игра еще идет
+            if ((target.hp <= 0 || attacker.hp <= 0) && matchState.isPlaying) {
+                checkRoundEnd();
+            }
         }
 
         function checkMeleeHit(attacker, defender) {
@@ -646,37 +650,33 @@
             updateUI();
             if (matchState.timeLeft <= 0) {
                 if (p1.hp > p2.hp) p2.hp = 0; else if (p2.hp > p1.hp) p1.hp = 0; else { p1.hp = 0; p2.hp = 0; } 
-                checkRoundEnd();
+                if (matchState.isPlaying) checkRoundEnd();
             }
         }
 
         function checkRoundEnd() {
-            if (p1.hp <= 0 || p2.hp <= 0) {
-                matchState.isPlaying = false;
-                clearInterval(timerInterval);
+            matchState.isPlaying = false;
+            clearInterval(timerInterval);
 
-                let text = "НИЧЬЯ!";
-                if (p1.hp > 0 && p2.hp <= 0) { matchState.p1Wins++; text = `${p1.heroName} ПОБЕДИЛ!`; }
-                else if (p2.hp > 0 && p1.hp <= 0) { matchState.p2Wins++; text = `${p2.heroName} ПОБЕДИЛ!`; }
+            let text = "НИЧЬЯ!";
+            if (p1.hp > 0 && p2.hp <= 0) { matchState.p1Wins++; text = `${p1.heroName} ПОБЕДИЛ!`; }
+            else if (p2.hp > 0 && p1.hp <= 0) { matchState.p2Wins++; text = `${p2.heroName} ПОБЕДИЛ!`; }
 
-                document.getElementById('round-text').innerText = text;
-                
-                let overlay = document.getElementById('overlay');
-                document.getElementById('overlay-title').innerText = text;
-                document.getElementById('btn-resume').style.display = "none";
-                document.getElementById('btn-menu-return').style.display = "none";
-                overlay.style.display = 'flex';
+            let overlay = document.getElementById('overlay');
+            document.getElementById('overlay-title').innerText = text;
+            document.getElementById('btn-resume').style.display = "none";
+            document.getElementById('btn-menu-return').style.display = "none";
+            overlay.style.display = 'flex';
 
-                setTimeout(() => {
-                    if (matchState.p1Wins >= 2 || matchState.p2Wins >= 2) {
-                        document.getElementById('overlay-title').innerText = matchState.p1Wins >= 2 ? "ВЫ ВЫИГРАЛИ БОЙ!" : "ВЫ ПРОИГРАЛИ...";
-                        document.getElementById('btn-menu-return').style.display = 'block';
-                    } else {
-                        matchState.currentRound++;
-                        startRound();
-                    }
-                }, 3000);
-            }
+            setTimeout(() => {
+                if (matchState.p1Wins >= 2 || matchState.p2Wins >= 2) {
+                    document.getElementById('overlay-title').innerText = matchState.p1Wins >= 2 ? "ВЫ ВЫИГРАЛИ БОЙ!" : "ВЫ ПРОИГРАЛИ...";
+                    document.getElementById('btn-menu-return').style.display = 'block';
+                } else {
+                    matchState.currentRound++;
+                    startRound(document.getElementById('p2-name').innerText);
+                }
+            }, 3000);
         }
 
         function initMatch() {
