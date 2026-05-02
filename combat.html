@@ -394,7 +394,7 @@
 
                 // Детали торса
                 if (isIronMan) { ctx.fillStyle = "#00d2ff"; ctx.beginPath(); ctx.arc(5, -torsoH/4, 8, 0, Math.PI*2); ctx.fill(); }
-                if (isBatman) { ctx.fillStyle = "yellow"; ctx.fillRect(-torsoW/2, torsoH/2 - 10, torsoW, 10); } // Пояс
+                if (isBatman) { ctx.fillStyle = "yellow"; ctx.fillRect(-torsoW/2, torsoH/2 - 10, torsoW, 10); } 
                 if (isSuperman) { ctx.fillStyle = "yellow"; ctx.beginPath(); ctx.moveTo(0, -torsoH/4); ctx.lineTo(10, 0); ctx.lineTo(-5, 0); ctx.fill(); ctx.fillStyle = "red"; ctx.fillRect(2, -torsoH/4 + 2, 4, 4); }
                 if (isThor) { ctx.fillStyle = "silver"; ctx.beginPath(); ctx.arc(5, -torsoH/4, 6, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(-5, 0, 6, 0, Math.PI*2); ctx.fill(); }
 
@@ -463,7 +463,9 @@
                     this.lastAttackTime = now;
                     this.comboHistory.push(type);
 
-                    if (this.comboHistory.join(',') === 'punch,kick,punch') {
+                    // НОВАЯ СИСТЕМА КОМБО: 3 удара рукой ИЛИ 3 удара ногой
+                    let comboStr = this.comboHistory.join(',');
+                    if (comboStr === 'punch,punch,punch' || comboStr === 'kick,kick,kick') {
                         this.fatalityCharge += 50; 
                         if (this.fatalityCharge > 100) this.fatalityCharge = 100;
                         this.comboHistory = [];
