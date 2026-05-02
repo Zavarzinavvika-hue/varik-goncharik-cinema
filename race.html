@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Все или ничего</title>
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --main-color: #e94560;
+            --text-color: #fff;
+            --panel-bg: rgba(0, 0, 0, 0.8);
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: var(--bg-color); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-color); overflow: hidden; user-select: none;
+        }
+
+        .screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            background: radial-gradient(circle at center, #16213e 0%, #0f3460 100%); z-index: 10;
+        }
+
+        .active-screen { display: flex !important; }
+
+        /* Главное меню */
+        .logo-container { margin-bottom: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border-radius: 10px; overflow: hidden; border: 3px solid var(--main-color);}
+        .logo-container img { display: block; max-width: 600px; width: 100%; height: auto; }
+        
+        .btn {
+            background: linear-gradient(90deg, #e94560, #c81d3f); color: white;
+            border: none; padding: 15px 40px; font-size: 20px; font-weight: bold;
+            border-radius: 5px; cursor: pointer; margin: 10px; text-transform: uppercase;
+            box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4); transition: 0.2s; min-width: 250px;
+        }
+        .btn:active { transform: scale(0.95); }
+        .btn-secondary { background: transparent; border: 2px solid #e94560; box-shadow: none; }
+
+        h2 { color: #fff; text-transform: uppercase; text-shadow: 0 2px 4px rgba(0,0,0,0.5); font-size: 30px; margin-bottom: 30px;}
+
+        /* Сетки выбора */
+        .grid-container {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px; width: 80%; max-width: 900px;
+        }
+        .card {
+            background: var(--panel-bg); border: 2px solid #333; border-radius: 10px;
+            padding: 20px; text-align: center; cursor: pointer; transition: 0.2s;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100px;
+        }
+        .card:hover { border-color: var(--main-color); background: rgba(233, 69, 96, 0.1); }
+        .card.selected { border-color: var(--main-color); background: rgba(233, 69, 96, 0.3); transform: scale(1.05); }
+        .card-title { font-size: 22px; font-weight: bold; margin-bottom: 10px;}
+        .card-sub { font-size: 14px; color: #aaa; }
+
+        /* Игровой интерфейс */
+        #game-ui {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 20; display: none;
+        }
+        
+        .hud-left { position: absolute; top: 20px; left: 20px; display: flex; flex-direction: column; gap: 15px; }
+        
+        .timer-box, .lap-box {
+            background: var(--panel-bg); padding: 10px 20px; border-radius: 5px;
+            border-left: 5px solid var(--main-color); font-family: monospace;
+        }
+        .timer-text { font-size: 30px; font-weight: bold; color: #fff; }
+        .lap-text { font-size: 24px; font-weight: bold; color: #fdf0d5; }
+
+        /* Таблица лидеров */
+        .standings {
+            background: var(--panel-bg); padding: 10px; border-radius: 5px; width: 220px; font-size: 14px;
+        }
+        .standings-header { font-weight: bold; color: var(--main-color); margin-bottom: 5px; border-bottom: 1px solid #555; padding-bottom: 5px;}
+        .standings-row { display: flex; justify-content: space-between; margin: 3px 0; padding: 2px 5px; border-radius: 3px;}
+        .standings-row.player { background: rgba(233, 69, 96, 0.4); font-weight: bold; }
+
+        /* Ускорение (Boost) */
+        .boost-container {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            width: 300px; text-align: center; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 10px;
+        }
+        .boost-label { font-size: 14px; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 2px;}
+        .boost-bar-bg { width: 100%; height: 15px; background: #333; border: 2px solid #000; border-radius: 8px; overflow: hidden; }
+        .boost-bar-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #00d2ff, #3a7bd5); transition: width 0.1s; }
+        .boost-ready { color: #00d2ff; text-shadow: 0 0 10px #00d2ff; animation: pulse 1s infinite;}
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        #game-canvas { display: block; background-color: #2c3e50; }
+
+        /* Оверлей результатов */
+        #results-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 50; display: none;
+            flex-direction: column; align-items: center; justify-content: center; pointer-events: auto;
+        }
+        .results-table { background: #111; padding: 20px; border-radius: 10px; border: 2px solid var(--main-color); margin-bottom: 20px; min-width: 300px;}
+        .res-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #333; font-size: 18px;}
+        .res-row:nth-child(1) { color: gold; font-weight: bold; font-size: 22px;}
+        .res-row:nth-child(2) { color: silver; font-weight: bold; }
+        .res-row:nth-child(3) { color: #cd7f32; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <!-- Главное меню -->
+    <div id="main-menu" class="screen active-screen">
+        <div class="logo-container">
+            <img src="https://sun9-73.userapi.com/s/v1/ig2/TtIRYLEzXJ1SNcF4h-1ubN0QXML7d6PvmMFDMzOU5yCuLQNnGoaMglXka5yCc9S1BstpEKplcJWNb7HYG60yhP6L.jpg?quality=95&as=32x18,48x27,72x40,108x60,160x89,240x134,360x201,480x268,540x301,640x357,720x402,1080x603,1280x714,1376x768&from=bu&u=oY74HXwdRJtvhLJFhTLtqeG0P-9ijkrlNGBJaN7kSc4&cs=1376x0" alt="Логотип">
+        </div>
+        <button class="btn" onclick="showScreen('team-select')">Начать заезд</button>
+        <button class="btn btn-secondary" onclick="alert('Это прототип. Главное меню браузера.')">Выход</button>
+    </div>
+
+    <!-- Выбор команды -->
+    <div id="team-select" class="screen">
+        <h2>Выберите команду</h2>
+        <div class="grid-container" id="teams-grid"></div>
+        <div style="margin-top: 30px;">
+            <button class="btn" onclick="proceedToDrivers()">Далее</button>
+            <button class="btn btn-secondary" onclick="showScreen('main-menu')">Назад</button>
+        </div>
+    </div>
+
+    <!-- Выбор гонщика -->
+    <div id="driver-select" class="screen">
+        <h2>Выберите гонщика</h2>
+        <div class="grid-container" id="drivers-grid"></div>
+        <div style="margin-top: 30px;">
+            <button class="btn" onclick="proceedToTrack()">Далее</button>
+            <button class="btn btn-secondary" onclick="showScreen('team-select')">Назад</button>
+        </div>
+    </div>
+
+    <!-- Выбор трассы -->
+    <div id="track-select" class="screen">
+        <h2>Выберите трассу</h2>
+        <div class="grid-container" id="tracks-grid"></div>
+        <div style="margin-top: 30px;">
+            <button class="btn" onclick="showScreen('mode-select')">Далее</button>
+            <button class="btn btn-secondary" onclick="showScreen('driver-select')">Назад</button>
+        </div>
+    </div>
+
+    <!-- Выбор режима перед гонкой -->
+    <div id="mode-select" class="screen">
+        <h2>Подготовка к Гран-при</h2>
+        <h3 id="final-setup-info" style="color: #aaa; margin-bottom: 30px;"></h3>
+        <button class="btn" onclick="startSession('quali')">Квалификация (1 круг)</button>
+        <button class="btn" onclick="startSession('race')">Начать заезд сразу (Старт с 10 места)</button>
+        <button class="btn btn-secondary" onclick="showScreen('track-select')" style="margin-top: 20px;">Назад</button>
+    </div>
+
+    <!-- Игровой холст и UI -->
+    <canvas id="game-canvas"></canvas>
+    
+    <div id="game-ui">
+        <div class="hud-left">
+            <div class="timer-box"><div class="timer-text" id="ui-time">00:00.000</div></div>
+            <div class="lap-box"><div class="lap-text" id="ui-lap">Круг: 1/3</div></div>
+            <div class="standings">
+                <div class="standings-header">ПОЗИЦИИ</div>
+                <div id="ui-standings"></div>
+            </div>
+        </div>
+
+        <div class="boost-container">
+            <div class="boost-label" id="boost-label">Ускорение (Пробел)</div>
+            <div class="boost-bar-bg">
+                <div class="boost-bar-fill" id="boost-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Экран результатов -->
+    <div id="results-overlay">
+        <h2 id="res-title" style="font-size: 40px; color: var(--main-color);">Итоги</h2>
+        <div class="results-table" id="res-table"></div>
+        <button class="btn" id="btn-next-session" onclick="transitionToRace()" style="display:none;">Перейти к гонке</button>
+        <button class="btn btn-secondary" onclick="resetGame()">В главное меню</button>
+    </div>
+
+    <script>
+        // --- ДАННЫЕ ИГРЫ ---
+        const teams = [
+            { id: 'avtovaz', name: 'АвтоВАЗ', color: '#e67e22' },
+            { id: 'kamaz', name: 'КАМАЗ', color: '#2980b9' },
+            { id: 'lada', name: 'Лада', color: '#c0392b' },
+            { id: 'moskvich', name: 'Москвич', color: '#27ae60' },
+            { id: 'avangard', name: 'Авангард', color: '#8e44ad' }
+        ];
+
+        const roster = {
+            'avtovaz': ['Фернандо Алонсо', 'Себастьян Феттель'],
+            'kamaz': ['Серхио Перез', 'Юки Цунода'],
+            'lada': ['Макс Ферстаппен', 'Шарль Леклер'],
+            'moskvich': ['Кими Антонелли', 'Пьер Гасли'],
+            'avangard': ['Льюис Хэмилтон', 'Джордж Рассел']
+        };
+
+        const tracksConfig = [
+            { id: 'nevsky', name: 'Невский Гран-при', sub: 'Санкт-Петербург', desc: 'Скоростные прямые и мосты',
+              points: [[0,0], [2000,0], [2000,800], [1500,800], [1500,400], [500,400], [500,800], [0,800]] },
+            { id: 'moscow', name: 'Московский Урбан Ринг', sub: 'Москва', desc: 'Плотные повороты',
+              points: [[0,0], [800,0], [800,500], [1500,500], [1500,1000], [400,1000], [400,500], [0,500]] },
+            { id: 'kazan', name: 'Казанский Кольцевой Трек', sub: 'Казань', desc: 'Плавные связки',
+              points: [[0,0], [1000,-300], [2000,0], [2200,800], [1800,1200], [1000,1000], [200,1200], [-200,800]] },
+            { id: 'sochi', name: 'Сочинский Прибрежный', sub: 'Сочи', desc: 'Затяжные повороты',
+              points: [[0,0], [1500,200], [2000,800], [1200,1500], [600,1000], [-300,800]] },
+            { id: 'ekat', name: 'Индустриальный Ринг', sub: 'Екатеринбург', desc: 'Жесткий трек',
+              points: [[0,0], [2000,0], [1000, 1500]] }
+        ];
+
+        // Глобальное состояние
+        let state = {
+            team: null, driver: null, track: null, session: 'none', // quali or race
+            timeParams: { start: 0, current: 0 },
+            isPaused: false, raceFinished: false
+        };
+
+        // --- ЛОГИКА МЕНЮ ---
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
+            document.getElementById(id).classList.add('active-screen');
+            if(id === 'team-select') renderTeams();
+            if(id === 'track-select') renderTracks();
+            document.getElementById('game-ui').style.display = 'none';
+        }
+
+        function renderTeams() {
+            const grid = document.getElementById('teams-grid');
+            grid.innerHTML = '';
+            teams.forEach(t => {
+                let div = document.createElement('div');
+                div.className = `card ${state.team === t.id ? 'selected' : ''}`;
+                div.style.borderBottom = `5px solid ${t.color}`;
+                div.innerHTML = `<div class="card-title">${t.name}</div>`;
+                div.onclick = () => { state.team = t.id; renderTeams(); };
+                grid.appendChild(div);
+            });
+        }
+
+        function proceedToDrivers() {
+            if(!state.team) return alert('Выберите команду!');
+            showScreen('driver-select');
+            const grid = document.getElementById('drivers-grid');
+            grid.innerHTML = '';
+            roster[state.team].forEach(d => {
+                let div = document.createElement('div');
+                div.className = `card ${state.driver === d ? 'selected' : ''}`;
+                div.innerHTML = `<div class="card-title">${d}</div><div class="card-sub">${teams.find(t=>t.id===state.team).name}</div>`;
+                div.onclick = () => { state.driver = d; proceedToDrivers(); }; // re-render
+                grid.appendChild(div);
+            });
+        }
+
+        function proceedToTrack() {
+            if(!state.driver) return alert('Выберите гонщика!');
+            showScreen('track-select');
+        }
+
+        function renderTracks() {
+            const grid = document.getElementById('tracks-grid');
+            grid.innerHTML = '';
+            tracksConfig.forEach(t => {
+                let div = document.createElement('div');
+                div.className = `card ${state.track === t.id ? 'selected' : ''}`;
+                div.innerHTML = `<div class="card-title">${t.name}</div><div class="card-sub">${t.sub}<br>${t.desc}</div>`;
+                div.onclick = () => { state.track = t.id; renderTracks(); updateSetupInfo(); };
+                grid.appendChild(div);
+            });
+        }
+
+        function updateSetupInfo() {
+            if(state.driver && state.track) {
+                const tr = tracksConfig.find(t=>t.id===state.track);
+                document.getElementById('final-setup-info').innerText = `Гонщик: ${state.driver} | Трасса: ${tr.name}`;
+            }
+        }
+
+        // --- ДВИЖОК ГОНКИ ---
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        let keys = {};
+        let cars = [];
+        let waypoints = [];
+        let animId;
+        const TRACK_WIDTH = 250;
+
+        class Car {
+            constructor(name, teamData, isPlayer, startPosIdx) {
+                this.name = name;
+                this.team = teamData;
+                this.isPlayer = isPlayer;
+                this.color = teamData.color;
+                
+                // Спавн на стартовой решетке
+                let wp0 = waypoints[0], wp1 = waypoints[1];
+                let angle = Math.atan2(wp1.y - wp0.y, wp1.x - wp0.x);
+                let offsetX = Math.cos(angle + Math.PI/2) * (startPosIdx % 2 === 0 ? -40 : 40);
+                let backOffset = Math.floor(startPosIdx / 2) * 120;
+                
+                this.x = wp0.x + offsetX - Math.cos(angle)*backOffset;
+                this.y = wp0.y + offsetX - Math.sin(angle)*backOffset;
+                this.angle = angle;
+                
+                this.speed = 0;
+                this.maxSpeed = 15;
+                this.accel = isPlayer ? 0.3 : 0.25 + (Math.random()*0.05); // Боты чуть медленнее
+                this.friction = 0.96;
+                this.turnSpeed = 0.06;
+                
+                this.wpIndex = 0;
+                this.laps = 0;
+                this.distanceToNext = 0;
+                
+                this.boost = 0; // 0 to 100
+                this.isBoosting = false;
+                
+                this.aiBaseOffset = (Math.random() - 0.5) * 100; // Боты едут по разным траекториям
+                this.finishTime = null;
+            }
+
+            update() {
+                if (state.raceFinished && this.isPlayer) {
+                    this.speed *= 0.95; // Торможение после финиша
+                } else if (this.isPlayer) {
+                    // Управление игрока
+                    if (keys['KeyW']) this.speed += this.accel;
+                    if (keys['KeyS']) this.speed -= this.accel * 1.5;
+                    
+                    if (this.speed > 0.5 || this.speed < -0.5) {
+                        let tSpeed = this.turnSpeed * (this.speed / this.maxSpeed);
+                        if (keys['KeyA']) this.angle -= Math.max(tSpeed, 0.03);
+                        if (keys['KeyD']) this.angle += Math.max(tSpeed, 0.03);
+                    }
+
+                    // Boost логика
+                    if (!this.isBoosting) {
+                        this.boost = Math.min(100, this.boost + 0.2); // Копим
+                    }
+                    if (keys['Space'] && this.boost >= 100) {
+                        this.isBoosting = true;
+                    }
+                    
+                    if (this.isBoosting) {
+                        this.boost -= 1.5;
+                        this.speed += 0.5;
+                        if (this.boost <= 0) { this.boost = 0; this.isBoosting = false; }
+                    }
+
+                } else {
+                    // ИИ
+                    if(!state.raceFinished || !this.finishTime) {
+                        let target = waypoints[(this.wpIndex + 1) % waypoints.length];
+                        
+                        // Вектор к цели с учетом смещения (чтобы не ехали паровозиком)
+                        let tAngle = Math.atan2(target.y - this.y, target.x - this.x);
+                        let targetX = target.x + Math.cos(tAngle + Math.PI/2) * this.aiBaseOffset;
+                        let targetY = target.y + Math.sin(tAngle + Math.PI/2) * this.aiBaseOffset;
+                        
+                        let desiredAngle = Math.atan2(targetY - this.y, targetX - this.x);
+                        
+                        let aDiff = desiredAngle - this.angle;
+                        // Нормализация угла
+                        while (aDiff > Math.PI) aDiff -= Math.PI*2;
+                        while (aDiff < -Math.PI) aDiff += Math.PI*2;
+                        
+                        this.angle += Math.sign(aDiff) * Math.min(Math.abs(aDiff), this.turnSpeed);
+                        
+                        // Газ бота
+                        let cornerSlowdown = Math.max(0.4, 1 - Math.abs(aDiff)); // Притормаживают в крутых поворотах
+                        this.speed += this.accel * cornerSlowdown;
+                    } else {
+                        this.speed *= 0.95; // После финиша
+                    }
+                }
+
+                // Физика (Трение и лимит скорости)
+                this.speed *= this.friction;
+                let currentMax = this.isBoosting ? this.maxSpeed * 1.4 : this.maxSpeed;
+                if (this.speed > currentMax) this.speed = currentMax;
+                if (this.speed < -5) this.speed = -5;
+
+                // Проверка вылета с трассы (упрощенная)
+                let onTrack = false;
+                for(let i=0; i<waypoints.length; i++) {
+                    let p1 = waypoints[i], p2 = waypoints[(i+1)%waypoints.length];
+                    if (distToSegment(this.x, this.y, p1.x, p1.y, p2.x, p2.y) < TRACK_WIDTH / 2) {
+                        onTrack = true; break;
+                    }
+                }
+                if (!onTrack) this.speed *= 0.85; // Штраф за траву
+
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed;
+
+                // Обновление прогресса
+                let nextWp = waypoints[(this.wpIndex + 1) % waypoints.length];
+                this.distanceToNext = Math.hypot(nextWp.x - this.x, nextWp.y - this.y);
+                if (this.distanceToNext < 300) {
+                    this.wpIndex = (this.wpIndex + 1) % waypoints.length;
+                    if (this.wpIndex === 1) { // Проехал старт
+                        this.laps++;
+                        checkLapProgress(this);
+                    }
+                }
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+                
+                // Тень
+                ctx.fillStyle = "rgba(0,0,0,0.5)";
+                ctx.fillRect(-22, -12, 44, 24);
+
+                // Корпус Ф1
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.moveTo(25, 0); // Нос
+                ctx.lineTo(10, -8);
+                ctx.lineTo(-20, -10); // Зад
+                ctx.lineTo(-20, 10);
+                ctx.lineTo(10, 8);
+                ctx.fill();
+
+                // Колеса
+                ctx.fillStyle = "#111";
+                ctx.fillRect(10, -14, 10, 6); ctx.fillRect(10, 8, 10, 6); // Передние
+                ctx.fillRect(-18, -16, 12, 8); ctx.fillRect(-18, 8, 12, 8); // Задние
+                
+                // Кокпит
+                ctx.fillStyle = "#ccc";
+                ctx.beginPath(); ctx.arc(-5, 0, 5, 0, Math.PI*2); ctx.fill();
+
+                // Эффект буста
+                if (this.isBoosting) {
+                    ctx.fillStyle = "#00d2ff";
+                    ctx.beginPath(); ctx.arc(-25, 0, 8 + Math.random()*5, 0, Math.PI*2); ctx.fill();
+                }
+
+                ctx.restore();
+                
+                // Имя гонщика над машиной
+                ctx.fillStyle = "rgba(255,255,255,0.7)";
+                ctx.font = "12px sans-serif";
+                ctx.fillText(this.name, this.x - 20, this.y - 20);
+            }
+        }
+
+        // Математика для проверки нахождения на трассе
+        function distToSegment(x, y, x1, y1, x2, y2) {
+            let A = x - x1, B = y - y1, C = x2 - x1, D = y2 - y1;
+            let dot = A * C + B * D;
+            let len_sq = C * C + D * D;
+            let param = -1;
+            if (len_sq != 0) param = dot / len_sq;
+            let xx, yy;
+            if (param < 0) { xx = x1; yy = y1; }
+            else if (param > 1) { xx = x2; yy = y2; }
+            else { xx = x1 + param * C; yy = y1 + param * D; }
+            let dx = x - xx, dy = y - yy;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        // Форматирование времени
+        function formatTime(ms) {
+            let mins = Math.floor(ms / 60000);
+            let secs = Math.floor((ms % 60000) / 1000);
+            let millis = ms % 1000;
+            return `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}.${millis.toString().padStart(3,'0')}`;
+        }
+
+        // --- УПРАВЛЕНИЕ ЗАЕЗДОМ ---
+        
+        let gridOrder = []; // Порядок старта (имена)
+
+        function startSession(mode) {
+            if(!state.driver || !state.track) return;
+            state.session = mode;
+            state.isPaused = false;
+            state.raceFinished = false;
+            
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
+            document.getElementById('game-ui').style.display = 'block';
+            document.getElementById('results-overlay').style.display = 'none';
+            
+            // Настройка трассы
+            const tData = tracksConfig.find(t=>t.id===state.track);
+            // Создаем замкнутый контур с плавными кривыми (упрощенно - сплайны через точки)
+            waypoints = tData.points.map(p => ({x: p[0], y: p[1]}));
+
+            // Сбор всех гонщиков
+            let allDrivers = [];
+            for(let key in roster) {
+                roster[key].forEach(d => {
+                    allDrivers.push({ name: d, team: teams.find(t=>t.id===key) });
+                });
+            }
+
+            cars = [];
+            if (mode === 'quali') {
+                // В квалификации едет только игрок
+                let pd = allDrivers.find(d => d.name === state.driver);
+                cars.push(new Car(pd.name, pd.team, true, 0));
+                document.getElementById('ui-lap').innerText = "Квал: 1 круг";
+            } else {
+                // Гонка: 3 круга, все машины
+                // Расстановка по гриду. Если нет грида (скип квал) - игрок 10-й.
+                if (gridOrder.length === 0) {
+                    let ai = allDrivers.filter(d => d.name !== state.driver);
+                    ai.sort(() => Math.random() - 0.5); // Рандом для ботов
+                    gridOrder = ai.map(d=>d.name);
+                    gridOrder.push(state.driver); // Игрок последний (10)
+                }
+                
+                gridOrder.forEach((dName, idx) => {
+                    let dData = allDrivers.find(d => d.name === dName);
+                    cars.push(new Car(dData.name, dData.team, dName === state.driver, idx));
+                });
+                document.getElementById('ui-lap').innerText = "Круг: 1/3";
+            }
+
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            state.timeParams.start = Date.now();
+            if(animId) cancelAnimationFrame(animId);
+            gameLoop();
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        function checkLapProgress(car) {
+            let maxLaps = state.session === 'quali' ? 1 : 3;
+            if (car.isPlayer && car.laps <= maxLaps) {
+                document.getElementById('ui-lap').innerText = state.session === 'quali' ? `Квал: ${car.laps}/${maxLaps}` : `Круг: ${car.laps}/${maxLaps}`;
+            }
+
+            if (car.laps > maxLaps && !car.finishTime) {
+                car.finishTime = Date.now() - state.timeParams.start;
+                if (car.isPlayer) {
+                    state.raceFinished = true;
+                    setTimeout(showResults, 2000); // Показываем итоги через 2 сек после финиша
+                }
+            }
+        }
+
+        function updateStandingsUI() {
+            // Сортировка машин: сначала финишировавшие, затем по кругам, затем по WP, затем по дистанции
+            let sorted = [...cars].sort((a, b) => {
+                if (a.finishTime && b.finishTime) return a.finishTime - b.finishTime;
+                if (a.finishTime) return -1;
+                if (b.finishTime) return 1;
+                
+                let scoreA = a.laps * 10000 + a.wpIndex * 100 - a.distanceToNext;
+                let scoreB = b.laps * 10000 + b.wpIndex * 100 - b.distanceToNext;
+                return scoreB - scoreA;
+            });
+
+            let html = '';
+            sorted.forEach((c, idx) => {
+                html += `<div class="standings-row ${c.isPlayer ? 'player' : ''}">
+                            <span style="color:${c.color}">${idx+1}. ${c.name.split(' ')[1]}</span>
+                         </div>`;
+            });
+            document.getElementById('ui-standings').innerHTML = html;
+        }
+
+        function showResults() {
+            state.isPaused = true;
+            document.getElementById('results-overlay').style.display = 'flex';
+            const tbody = document.getElementById('res-table');
+            tbody.innerHTML = '';
+
+            if (state.session === 'quali') {
+                document.getElementById('res-title').innerText = "Квалификация Завершена";
+                document.getElementById('btn-next-session').style.display = 'block';
+                
+                // Симуляция времени ИИ
+                let playerTime = cars[0].finishTime;
+                let allResults = [{name: state.driver, time: playerTime}];
+                
+                let allDrivers = [];
+                for(let key in roster) roster[key].forEach(d => allDrivers.push(d));
+                let aiDrivers = allDrivers.filter(d => d !== state.driver);
+                
+                aiDrivers.forEach(d => {
+                    // ИИ едет время в пределах +/- 3 секунды от игрока (баланс)
+                    let simTime = playerTime + (Math.random() * 6000 - 3000);
+                    allResults.push({name: d, time: simTime});
+                });
+                
+                allResults.sort((a,b) => a.time - b.time);
+                gridOrder = allResults.map(r => r.name); // Сохраняем грид для гонки
+
+                allResults.forEach((r, idx) => {
+                    tbody.innerHTML += `<div class="res-row" style="${r.name===state.driver?'color:var(--main-color)':''}">
+                        <span>${idx+1}</span><span>${r.name}</span><span>${formatTime(r.time)}</span>
+                    </div>`;
+                });
+
+            } else {
+                document.getElementById('res-title').innerText = "Гонка Завершена";
+                document.getElementById('btn-next-session').style.display = 'none';
+                
+                let sorted = [...cars].sort((a,b) => a.finishTime - b.finishTime);
+                sorted.forEach((c, idx) => {
+                    tbody.innerHTML += `<div class="res-row" style="${c.isPlayer?'color:var(--main-color)':''}">
+                        <span>${idx+1}</span><span>${c.name}</span><span>${formatTime(c.finishTime)}</span>
+                    </div>`;
+                });
+            }
+        }
+
+        function transitionToRace() {
+            startSession('race');
+        }
+
+        function resetGame() {
+            gridOrder = [];
+            document.getElementById('results-overlay').style.display = 'none';
+            document.getElementById('game-ui').style.display = 'none';
+            showScreen('main-menu');
+        }
+
+        // --- ГЛАВНЫЙ ИГРОВОЙ ЦИКЛ ---
+        window.addEventListener('keydown', e => keys[e.code] = true);
+        window.addEventListener('keyup', e => keys[e.code] = false);
+
+        function drawTrackDetailed(ctx) {
+            // Трава/Асфальт
+            ctx.fillStyle = "#27ae60"; // Фон травы вокруг трека (отрисовывается заливкой канваса)
+            
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            // Основной асфальт
+            ctx.beginPath();
+            ctx.moveTo(waypoints[0].x, waypoints[0].y);
+            for(let i=1; i<waypoints.length; i++) ctx.lineTo(waypoints[i].x, waypoints[i].y);
+            ctx.closePath();
+            
+            // Поребрики (красно-белые бордюры)
+            ctx.lineWidth = TRACK_WIDTH + 20;
+            ctx.strokeStyle = "#c0392b";
+            ctx.setLineDash([40, 40]);
+            ctx.stroke();
+
+            // Асфальт
+            ctx.setLineDash([]);
+            ctx.lineWidth = TRACK_WIDTH;
+            ctx.strokeStyle = "#555";
+            ctx.stroke();
+
+            // Стартовая линия
+            let wp0 = waypoints[0], wp1 = waypoints[1];
+            let angle = Math.atan2(wp1.y - wp0.y, wp1.x - wp0.x);
+            ctx.save();
+            ctx.translate(wp0.x, wp0.y);
+            ctx.rotate(angle);
+            ctx.fillStyle = "white";
+            for(let i=-TRACK_WIDTH/2; i<TRACK_WIDTH/2; i+=20) {
+                ctx.fillRect(0, i, 10, 10);
+                ctx.fillRect(10, i+10, 10, 10);
+            }
+            ctx.restore();
+        }
+
+        function gameLoop() {
+            if (state.isPaused) return;
+
+            // Обновление таймера
+            if (!state.raceFinished) {
+                state.timeParams.current = Date.now() - state.timeParams.start;
+                document.getElementById('ui-time').innerText = formatTime(state.timeParams.current);
+            }
+
+            let playerCar = cars.find(c => c.isPlayer);
+            
+            // Логика машин
+            cars.forEach(c => c.update());
+
+            // Камера следит за игроком
+            ctx.fillStyle = "#27ae60"; // Трава
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.save();
+            // Центрируем камеру
+            ctx.translate(canvas.width/2 - playerCar.x, canvas.height/2 - playerCar.y);
+
+            drawTrackDetailed(ctx);
+            
+            // Машины
+            cars.forEach(c => c.draw(ctx));
+
+            ctx.restore();
+
+            // UI Обновления
+            updateStandingsUI();
+            
+            // Буст бар
+            let boostFill = document.getElementById('boost-fill');
+            let boostLabel = document.getElementById('boost-label');
+            boostFill.style.width = playerCar.boost + "%";
+            if (playerCar.boost >= 100) {
+                boostLabel.classList.add('boost-ready');
+                boostLabel.innerText = "ГОТОВО! (ПРОБЕЛ)";
+            } else {
+                boostLabel.classList.remove('boost-ready');
+                boostLabel.innerText = `Ускорение: ${Math.floor(playerCar.boost)}%`;
+            }
+
+            animId = requestAnimationFrame(gameLoop);
+        }
+    </script>
+</body>
+</html>
