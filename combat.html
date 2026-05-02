@@ -16,12 +16,29 @@
             margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
             background-color: var(--dark-bg); font-family: 'Segoe UI', sans-serif;
             color: white; user-select: none; -webkit-user-select: none;
+            touch-action: none; 
         }
 
         .screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: none; flex-direction: column; align-items: center; justify-content: center;
             background-size: cover; background-position: center; z-index: 10;
+        }
+
+        /* ЭКРАН ПОВОРОТА ТЕЛЕФОНА */
+        #rotate-screen {
+            background-color: var(--dark-bg); z-index: 9999;
+            text-align: center; padding: 20px; color: var(--gold);
+        }
+        .rotate-icon { font-size: 60px; margin-bottom: 20px; animation: rotateAnim 1.5s infinite; }
+        @keyframes rotateAnim {
+            0% { transform: rotate(0deg); }
+            50% { transform: rotate(-90deg); }
+            100% { transform: rotate(-90deg); }
+        }
+
+        @media screen and (orientation: portrait) {
+            #rotate-screen { display: flex !important; }
         }
 
         #menu-screen {
@@ -39,6 +56,7 @@
             background: rgba(193, 18, 31, 0.8); color: white; border: 2px solid var(--mortal-red);
             padding: 15px 40px; font-size: 22px; font-weight: bold; border-radius: 5px;
             cursor: pointer; margin: 10px; text-transform: uppercase; box-shadow: 0 0 15px rgba(193, 18, 31, 0.5);
+            -webkit-tap-highlight-color: transparent;
         }
         .btn:active { transform: scale(0.95); }
         .btn-secondary { background: transparent; color: var(--gold); border: 2px solid var(--gold); box-shadow: none; }
@@ -46,12 +64,12 @@
         h2 { color: var(--gold); text-transform: uppercase; text-shadow: 0 0 10px black; }
 
         .char-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-width: 95%; margin-bottom: 20px; }
-        .char-card { width: 70px; height: 70px; border: 2px solid #555; background-size: cover; background-position: center; cursor: pointer; filter: grayscale(50%); transition: 0.3s; }
+        .char-card { width: 70px; height: 70px; border: 2px solid #555; background-size: cover; background-position: center; cursor: pointer; filter: grayscale(50%); transition: 0.3s; -webkit-tap-highlight-color: transparent;}
         .char-card.active { border: 3px solid var(--mortal-red); filter: grayscale(0%); transform: scale(1.1); box-shadow: 0 0 15px var(--mortal-red); z-index: 2; }
         #selected-char-name { font-size: 24px; font-weight: bold; color: white; height: 30px; margin-bottom: 15px; text-transform: uppercase; text-align: center;}
 
         .map-grid { display: flex; flex-direction: column; gap: 15px; width: 80%; }
-        .map-card { height: 80px; border: 2px solid #555; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; text-shadow: 1px 1px 3px black; background-size: cover; background-position: center; cursor: pointer; position: relative; }
+        .map-card { height: 80px; border: 2px solid #555; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; text-shadow: 1px 1px 3px black; background-size: cover; background-position: center; cursor: pointer; position: relative; -webkit-tap-highlight-color: transparent;}
         .map-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
         .map-card span { position: relative; z-index: 2; }
         .map-card.active { border-color: var(--gold); }
@@ -66,27 +84,28 @@
 
         .player-info { display: flex; flex-direction: column; width: 35%; }
         .player-info.right { align-items: flex-end; text-align: right; }
-        .name { font-size: 18px; font-weight: bold; color: var(--gold); text-transform: uppercase; margin-bottom: 5px; text-shadow: 1px 1px 2px black;}
+        .name { font-size: 16px; font-weight: bold; color: var(--gold); text-transform: uppercase; margin-bottom: 5px; text-shadow: 1px 1px 2px black;}
         
         .hearts { display: flex; flex-wrap: wrap; gap: 3px; max-width: 100%;}
-        .heart { font-size: 18px; color: #555; } 
+        .heart { font-size: 16px; color: #555; } 
         .heart.full { color: var(--mortal-red); text-shadow: 0 0 5px red;}
 
-        .fatality-bar { width: 150px; height: 10px; background: #333; margin-top: 5px; border: 1px solid #000; position: relative;}
+        .fatality-bar { width: 100%; max-width: 150px; height: 10px; background: #333; margin-top: 5px; border: 1px solid #000; position: relative;}
         .fatality-fill { width: 0%; height: 100%; background: #00d2ff; transition: width 0.3s; box-shadow: 0 0 10px #00d2ff;}
         .fatality-text { position: absolute; width: 100%; text-align: center; top: -2px; font-size: 10px; color: white; font-weight: bold; text-shadow: 1px 1px 1px black; pointer-events: none;}
 
         .timer-box { text-align: center; width: 20%; display: flex; flex-direction: column; align-items: center;}
-        .timer { font-size: 40px; font-weight: 900; color: white; text-shadow: 0 0 10px var(--mortal-red); }
-        .round { font-size: 14px; color: var(--gold); text-transform: uppercase; font-weight: bold;}
+        .timer { font-size: 35px; font-weight: 900; color: white; text-shadow: 0 0 10px var(--mortal-red); }
+        .round { font-size: 12px; color: var(--gold); text-transform: uppercase; font-weight: bold;}
         
         .btn-pause-small {
             margin-top: 5px; padding: 5px 10px; background: rgba(0,0,0,0.6); 
             border: 1px solid var(--gold); color: var(--gold); font-weight: bold; 
             border-radius: 5px; cursor: pointer; text-transform: uppercase; font-size: 12px;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .wins-counter { font-size: 14px; color: white; text-transform: uppercase; margin-top: 5px; }
+        .wins-counter { font-size: 12px; color: white; text-transform: uppercase; margin-top: 5px; }
 
         #fight-canvas { display: block; width: 100%; height: 100%; }
 
@@ -96,9 +115,53 @@
             flex-direction: column; align-items: center; justify-content: center;
         }
         #overlay-title { font-size: 50px; color: var(--gold); font-weight: bold; text-transform: uppercase; text-shadow: 0 0 20px red; margin-bottom: 20px; text-align: center;}
+
+        /* --- МОБИЛЬНОЕ УПРАВЛЕНИЕ (ОБНОВЛЕННОЕ) --- */
+        #mobile-ctrl {
+            position: absolute; bottom: 20px; left: 0; width: 100%;
+            display: none; justify-content: space-between; align-items: flex-end; padding: 0 30px;
+            box-sizing: border-box; z-index: 30; pointer-events: none; 
+        }
+        
+        /* Блок крестовины слева (Прыжок сверху, Влево и Вправо снизу) */
+        .ctrl-group-left { 
+            display: flex; flex-direction: column; align-items: center; 
+            pointer-events: auto; gap: 10px; 
+        }
+        .ctrl-row { display: flex; gap: 40px; } /* Пробел между ◀ и ▶ */
+        
+        /* Блок ударов справа */
+        .ctrl-group { display: flex; gap: 15px; pointer-events: auto; align-items: flex-end; padding-bottom: 5px;}
+        
+        .ctrl-btn {
+            width: 65px; height: 65px; border-radius: 50%; background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.5); color: white; font-size: 28px;
+            display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            -webkit-tap-highlight-color: transparent; cursor: pointer;
+        }
+        .ctrl-btn:active { transform: scale(0.85); background: rgba(255,255,255,0.4); }
+
+        #btn-fatality-mobile {
+            position: absolute; left: 50%; transform: translateX(-50%); bottom: 20px;
+            background: rgba(193, 18, 31, 0.8); border: 2px solid white; color: white; font-weight: bold;
+            font-size: 16px; border-radius: 10px; padding: 15px 30px; text-transform: uppercase;
+            box-shadow: 0 0 15px red; animation: pulse 1s infinite; pointer-events: auto;
+            display: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
+        }
+        @keyframes pulse { 0% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.1); } 100% { transform: translateX(-50%) scale(1); } }
+
+        @media screen and (max-width: 950px) and (orientation: landscape) {
+            #mobile-ctrl { display: flex; }
+        }
     </style>
 </head>
 <body>
+
+    <div id="rotate-screen" class="screen" style="display: none;">
+        <div class="rotate-icon">🔄</div>
+        <h2>Пожалуйста, поверните телефон горизонтально</h2>
+        <p>Для комфортной игры в файтинг требуется широкий экран.</p>
+    </div>
 
     <div id="menu-screen" class="screen">
         <div class="title">Битва Героев</div>
@@ -161,7 +224,6 @@
             <div class="timer-box">
                 <div class="timer" id="round-timer">90</div>
                 <div class="round" id="round-counter">Раунд 1</div>
-                <!-- КНОПКА ПАУЗЫ -->
                 <button class="btn-pause-small" onclick="togglePause()">Пауза (P)</button>
             </div>
 
@@ -174,7 +236,28 @@
                 </div>
             </div>
         </div>
+
         <canvas id="fight-canvas"></canvas>
+
+        <!-- КНОПКИ ДЛЯ ТЕЛЕФОНА С НОВОЙ РАСКЛАДКОЙ (D-PAD) -->
+        <div id="mobile-ctrl">
+            <!-- Левая сторона: Прыжок сверху, Влево и Вправо под ним -->
+            <div class="ctrl-group-left">
+                <div class="ctrl-btn" id="btn-up">▲</div>
+                <div class="ctrl-row">
+                    <div class="ctrl-btn" id="btn-left">◀</div>
+                    <div class="ctrl-btn" id="btn-right">▶</div>
+                </div>
+            </div>
+            
+            <div id="btn-fatality-mobile">⚡ ФАТАЛИТИ ⚡</div>
+            
+            <!-- Правая сторона: Только удары -->
+            <div class="ctrl-group">
+                <div class="ctrl-btn" id="btn-punch">✊</div>
+                <div class="ctrl-btn" id="btn-kick">🦶</div>
+            </div>
+        </div>
 
         <div id="overlay">
             <div id="overlay-title">КОНЕЦ РАУНДА</div>
@@ -230,7 +313,16 @@
 
         canvas.addEventListener('contextmenu', event => event.preventDefault());
 
-        // --- ЛОГИКА ПАУЗЫ ---
+        window.addEventListener('resize', () => {
+            if (matchState.isPlaying || matchState.isPaused) {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                groundY = canvas.height - 50;
+                if (p1 && p1.y > groundY) p1.y = groundY - p1.height;
+                if (p2 && p2.y > groundY) p2.y = groundY - p2.height;
+            }
+        });
+
         function togglePause() {
             if (!matchState.isPlaying && !matchState.isPaused) return; 
             
@@ -313,7 +405,6 @@
                 this.x = x; this.y = 0; 
                 this.heroName = heroName; this.isPlayer = isPlayer;
 
-                // Базовые размеры
                 this.width = heroName === 'Халк' ? 90 : 60;
                 this.height = heroName === 'Халк' ? 170 : 130;
 
@@ -369,9 +460,8 @@
                 if (!this.grounded) swing = 20; 
                 let bobbing = (this.vx !== 0 && this.grounded) ? Math.abs(Math.sin(globalFrame * 0.2)) * 5 : 0;
                 
-                ctx.translate(0, -bobbing); // Покачивание
+                ctx.translate(0, -bobbing);
 
-                // Цвета и детали для каждого героя
                 let headC = "#ffcc99", torsoC = "#444", legC = "#333", armC = "#444";
                 let hasCape = false, capeC = "red", hasShield = false, isAlien = false, isPredator = false, isIronMan = false, isBatman = false, isThor = false, isSuperman = false;
 
@@ -391,63 +481,49 @@
                 let torsoW = this.width * 0.7, torsoH = this.height / 2;
                 if (this.heroName === 'Халк') { torsoW = this.width * 0.9; armW = 22; legW = 24; }
 
-                // Плащ сзади
                 if (hasCape) {
-                    ctx.fillStyle = capeC;
-                    ctx.beginPath();
-                    ctx.moveTo(-torsoW/3, -torsoH/2);
-                    ctx.lineTo(-torsoW - 10 - (this.vx*2), torsoH);
-                    ctx.lineTo(0 - (this.vx*2), torsoH);
-                    ctx.fill();
+                    ctx.fillStyle = capeC; ctx.beginPath(); ctx.moveTo(-torsoW/3, -torsoH/2);
+                    ctx.lineTo(-torsoW - 10 - (this.vx*2), torsoH); ctx.lineTo(0 - (this.vx*2), torsoH); ctx.fill();
                 }
 
-                // Хвост чужого
                 if (isAlien) {
                     ctx.strokeStyle = "#111"; ctx.lineWidth = 10;
                     ctx.beginPath(); ctx.moveTo(-10, 0); ctx.quadraticCurveTo(-60, 20, -50 + swing/2, -30); ctx.stroke();
                 }
 
-                // ЗАДНЯЯ НОГА
                 ctx.fillStyle = legC;
                 ctx.save(); ctx.translate(0, torsoH/2 - 5); ctx.rotate(-swing * Math.PI/180); ctx.fillRect(-legW/2, 0, legW, legH); ctx.restore();
 
-                // ЗАДНЯЯ РУКА
                 ctx.fillStyle = armC;
                 ctx.save(); ctx.translate(0, -torsoH/2 + 10); ctx.rotate(swing * Math.PI/180); ctx.fillRect(-armW/2, 0, armW, armH); ctx.restore();
 
-                // ТОРС
-                ctx.fillStyle = torsoC;
-                ctx.fillRect(-torsoW/2, -torsoH/2, torsoW, torsoH);
+                ctx.fillStyle = torsoC; ctx.fillRect(-torsoW/2, -torsoH/2, torsoW, torsoH);
 
-                // Детали торса
                 if (isIronMan) { ctx.fillStyle = "#00d2ff"; ctx.beginPath(); ctx.arc(5, -torsoH/4, 8, 0, Math.PI*2); ctx.fill(); }
                 if (isBatman) { ctx.fillStyle = "yellow"; ctx.fillRect(-torsoW/2, torsoH/2 - 10, torsoW, 10); } 
                 if (isSuperman) { ctx.fillStyle = "yellow"; ctx.beginPath(); ctx.moveTo(0, -torsoH/4); ctx.lineTo(10, 0); ctx.lineTo(-5, 0); ctx.fill(); ctx.fillStyle = "red"; ctx.fillRect(2, -torsoH/4 + 2, 4, 4); }
                 if (isThor) { ctx.fillStyle = "silver"; ctx.beginPath(); ctx.arc(5, -torsoH/4, 6, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(-5, 0, 6, 0, Math.PI*2); ctx.fill(); }
-                if (isPredator) { ctx.fillStyle = "silver"; ctx.fillRect(10, -torsoH/2 - 5, 10, 10); } // Наплечная пушка
+                if (isPredator) { ctx.fillStyle = "silver"; ctx.fillRect(10, -torsoH/2 - 5, 10, 10); } 
 
-                // ГОЛОВА
                 ctx.fillStyle = headC;
                 if (isAlien) {
-                    ctx.beginPath(); ctx.ellipse(5, -torsoH/2 - 15, 25, 12, -0.2, 0, Math.PI*2); ctx.fill(); // Вытянутая
+                    ctx.beginPath(); ctx.ellipse(5, -torsoH/2 - 15, 25, 12, -0.2, 0, Math.PI*2); ctx.fill(); 
                 } else {
                     ctx.beginPath(); ctx.arc(0, -torsoH/2 - 15, 16, 0, Math.PI*2); ctx.fill();
                 }
 
-                // Детали головы
                 if (isBatman) {
                     ctx.beginPath(); ctx.moveTo(-10, -torsoH/2 - 25); ctx.lineTo(-15, -torsoH/2 - 40); ctx.lineTo(-5, -torsoH/2 - 25); ctx.fill();
                     ctx.beginPath(); ctx.moveTo(10, -torsoH/2 - 25); ctx.lineTo(15, -torsoH/2 - 40); ctx.lineTo(5, -torsoH/2 - 25); ctx.fill();
-                    ctx.fillStyle = "#ffe4b5"; ctx.fillRect(-5, -torsoH/2 - 10, 15, 8); // Открытый рот
+                    ctx.fillStyle = "#ffe4b5"; ctx.fillRect(-5, -torsoH/2 - 10, 15, 8); 
                 }
                 if (isPredator) {
                     ctx.strokeStyle = "black"; ctx.lineWidth = 3;
                     for(let i=0; i<4; i++) { ctx.beginPath(); ctx.moveTo(-10, -torsoH/2 - 10); ctx.lineTo(-20 - i*5, -torsoH/2 + 10 + swing/4); ctx.stroke(); }
-                    ctx.fillStyle = "silver"; ctx.fillRect(-5, -torsoH/2 - 20, 10, 20); // Маска
+                    ctx.fillStyle = "silver"; ctx.fillRect(-5, -torsoH/2 - 20, 10, 20); 
                 }
-                if (isIronMan) { ctx.fillStyle = "#00d2ff"; ctx.fillRect(5, -torsoH/2 - 20, 8, 4); } // Глаза
+                if (isIronMan) { ctx.fillStyle = "#00d2ff"; ctx.fillRect(5, -torsoH/2 - 20, 8, 4); } 
 
-                // ПЕРЕДНЯЯ НОГА
                 ctx.fillStyle = legC;
                 ctx.save(); 
                 ctx.translate(0, torsoH/2 - 5); 
@@ -458,7 +534,6 @@
                 }
                 ctx.restore();
 
-                // ПЕРЕДНЯЯ РУКА
                 ctx.fillStyle = armC;
                 ctx.save(); 
                 ctx.translate(0, -torsoH/2 + 10); 
@@ -473,7 +548,6 @@
                 }
                 ctx.restore();
 
-                // Аура Фаталити
                 if (this.isFatalityMode) {
                     ctx.strokeStyle = this.isPlayer ? "#00ff00" : "#ff00ff";
                     ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 20; ctx.lineWidth = 2;
@@ -491,10 +565,9 @@
                     this.lastAttackTime = now;
                     this.comboHistory.push(type);
 
-                    // СИСТЕМА КОМБО: 3 удара рукой ИЛИ 3 удара ногой
                     let comboStr = this.comboHistory.join(',');
                     if (comboStr === 'punch,punch,punch' || comboStr === 'kick,kick,kick') {
-                        this.fatalityCharge = 100; // Сразу 100% за комбо!
+                        this.fatalityCharge = 100; 
                         this.comboHistory = [];
                         updateUI(); 
                     } else if (this.comboHistory.length >= 3) {
@@ -509,7 +582,6 @@
             }
 
             useFatalityAttack() {
-                // Тор не имеет кулдауна, остальные имеют паузу между бросками
                 if (this.fatalityCooldown > 0 && this.heroName !== 'Тор') return;
                 
                 let dir = this.facingRight ? 1 : -1;
@@ -556,7 +628,6 @@
                     box.x = this.facingRight ? this.x + this.width : this.x - box.w;
                     box.y = this.y + this.height/4; 
                 } else if (this.attackType === 'kick') {
-                    // ИСПРАВЛЕНИЕ: Увеличен хитбокс для удара ногой
                     box.w = 70; box.h = 30; 
                     box.x = this.facingRight ? this.x + this.width : this.x - box.w;
                     box.y = this.y + this.height/2; 
@@ -600,12 +671,22 @@
             document.getElementById('p1-fatality').style.width = p1.fatalityCharge + "%";
             document.getElementById('p2-fatality').style.width = p2.fatalityCharge + "%";
 
+            let fatMobile = document.getElementById('btn-fatality-mobile');
+
             if (p1.isFatalityMode) {
                 document.getElementById('p1-f-text').innerText = "ФАТАЛИТИ!";
                 document.getElementById('p1-f-text').style.color = "red";
+                fatMobile.style.display = "none";
             } else {
-                document.getElementById('p1-f-text').innerText = p1.fatalityCharge >= 100 ? "ГОТОВО! (ЛКМ + ПКМ)" : "";
-                document.getElementById('p1-f-text').style.color = "white";
+                if (p1.fatalityCharge >= 100) {
+                    document.getElementById('p1-f-text').innerText = "ГОТОВО!";
+                    document.getElementById('p1-f-text').style.color = "white";
+                    if (window.innerWidth <= 950) fatMobile.style.display = "block";
+                } else {
+                    document.getElementById('p1-f-text').innerText = ``;
+                    document.getElementById('p1-f-text').style.color = "white";
+                    fatMobile.style.display = "none";
+                }
             }
         }
 
@@ -628,7 +709,6 @@
             target.vy = -5; 
             updateUI();
             
-            // Защита: вызываем конец раунда только если игра еще идет
             if ((target.hp <= 0 || attacker.hp <= 0) && matchState.isPlaying) {
                 checkRoundEnd();
             }
@@ -723,9 +803,7 @@
             if (e.button === 2) mouseState.right = true;
 
             if (mouseState.left && mouseState.right) {
-                if (p1.fatalityCharge >= 100 && !p1.isFatalityMode) {
-                    p1.activateFatality();
-                }
+                if (p1.fatalityCharge >= 100 && !p1.isFatalityMode) p1.activateFatality();
             } else {
                 if (e.button === 0) p1.attack('punch'); 
                 if (e.button === 2) p1.attack('kick');  
@@ -736,6 +814,28 @@
             if (e.button === 0) mouseState.left = false;
             if (e.button === 2) mouseState.right = false;
         });
+
+        const bindTouch = (id, key) => {
+            const btn = document.getElementById(id);
+            if(!btn) return;
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; });
+            btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; });
+            btn.addEventListener('touchcancel', (e) => { e.preventDefault(); keys[key] = false; });
+        };
+        bindTouch('btn-left', 'KeyA');
+        bindTouch('btn-right', 'KeyD');
+        bindTouch('btn-up', 'KeyW');
+
+        document.getElementById('btn-punch').addEventListener('touchstart', (e) => { 
+            e.preventDefault(); if (matchState.isPlaying && !matchState.isPaused) p1.attack('punch'); 
+        });
+        document.getElementById('btn-kick').addEventListener('touchstart', (e) => { 
+            e.preventDefault(); if (matchState.isPlaying && !matchState.isPaused) p1.attack('kick'); 
+        });
+        document.getElementById('btn-fatality-mobile').addEventListener('touchstart', (e) => { 
+            e.preventDefault(); if (matchState.isPlaying && !matchState.isPaused && p1.fatalityCharge >= 100 && !p1.isFatalityMode) p1.activateFatality(); 
+        });
+
 
         function gameLoop() {
             if (matchState.isPlaying && !matchState.isPaused) {
