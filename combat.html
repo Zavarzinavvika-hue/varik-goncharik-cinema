@@ -72,8 +72,9 @@
         .heart { font-size: 20px; color: #555; } 
         .heart.full { color: var(--mortal-red); text-shadow: 0 0 5px red;}
 
-        .fatality-bar { width: 150px; height: 8px; background: #333; margin-top: 5px; border: 1px solid #000; }
-        .fatality-fill { width: 0%; height: 100%; background: #00d2ff; transition: width 0.3s; }
+        .fatality-bar { width: 150px; height: 10px; background: #333; margin-top: 5px; border: 1px solid #000; position: relative;}
+        .fatality-fill { width: 0%; height: 100%; background: #00d2ff; transition: width 0.3s; box-shadow: 0 0 10px #00d2ff;}
+        .fatality-text { position: absolute; width: 100%; text-align: center; top: -2px; font-size: 10px; color: white; font-weight: bold; text-shadow: 1px 1px 1px black; }
 
         .timer-box { text-align: center; }
         .timer { font-size: 40px; font-weight: 900; color: white; text-shadow: 0 0 10px var(--mortal-red); }
@@ -82,7 +83,6 @@
 
         #fight-canvas { display: block; width: 100%; height: 100%; }
 
-        /* Окно конца раунда/игры */
         #round-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.8); z-index: 50; display: none;
@@ -145,7 +145,10 @@
                 <div class="name" id="p1-name">Железный человек</div>
                 <div class="hearts" id="p1-hearts"></div>
                 <div class="wins-counter" id="p1-wins">Побед: 0</div>
-                <div class="fatality-bar"><div class="fatality-fill" id="p1-fatality"></div></div>
+                <div class="fatality-bar">
+                    <div class="fatality-fill" id="p1-fatality"></div>
+                    <div class="fatality-text" id="p1-f-text">КОМБО: 0%</div>
+                </div>
             </div>
             
             <div class="timer-box">
@@ -157,7 +160,9 @@
                 <div class="name" id="p2-name">Противник</div>
                 <div class="hearts" id="p2-hearts"></div>
                 <div class="wins-counter" id="p2-wins">Побед: 0</div>
-                <div class="fatality-bar"><div class="fatality-fill"></div></div>
+                <div class="fatality-bar">
+                    <div class="fatality-fill" id="p2-fatality"></div>
+                </div>
             </div>
         </div>
         <canvas id="fight-canvas"></canvas>
@@ -182,7 +187,18 @@
             'end': 'https://sun9-80.userapi.com/s/v1/ig2/W-usTkJ9s9LBqOI_hJZvHtN4BzKIlF9tjSOG0dKTXu-fdfC-NNl3LXW4HInEAalcDgvEEEP3XQeWR0THlDsg4Nr4.jpg?quality=95&as=32x17,48x26,72x39,108x59,160x87,240x131,360x196,480x262,540x295,640x349,720x393,1080x589,1280x698,1408x768&from=bu&u=gj3rMmIA2duTO9gFlgRR0qSUCA0AKeWJ0yRLMatAtOM&cs=1408x0'
         };
 
-        const heroList = ['Железный человек', 'Супермен', 'Бэтмен', 'Капитан Америка', 'Халк', 'Тор', 'Чужой', 'Хищник'];
+        const heroData = {
+            'Железный человек': 'https://sun9-69.userapi.com/s/v1/ig2/Hh_oprR6Z3Pv9v0tzbn0E030aRuB-ko5ajRK5insZcOPzckILMQLPSYhJI5zGMgm7tzwZRGQ4dziZxJ7ppCh9sCy.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,937x937&from=bu&u=0vp13m8is07OlGZlM734nKC0TNSQ9y_WrIBc93BwxCQ&cs=937x0',
+            'Супермен': 'https://sun9-40.userapi.com/s/v1/ig2/PJPl0be_XrRFDF3kES5FhTy9Y0QVVn3LZf9oVcAYSiO5vCSxWFOUCoXR_seRrIoZj4OJtROj0YsA8WITjPXyeb3p.jpg?quality=95&as=32x41,48x62,72x92,108x139,160x205,240x308,360x462,480x616,540x693,542x696&from=bu&u=sEuoaQ0-2bxkVSnoPD5zR9KzYHGiL9lI8eA929y5Idg&cs=542x0',
+            'Бэтмен': 'https://sun9-69.userapi.com/s/v1/ig2/Aw_s8HFVhnzn3hkVV73QEA9WDqiYq16OVuvQL2hgOnhhQaMtzlNmrrBLT3-bSjM9Ca8tsP7wSF4MICxfRbC0ZEos.jpg?quality=95&as=32x49,48x74,72x110,108x166,160x245,240x368,360x552,480x736,536x822&from=bu&u=6G-FrJrpFNdxF-9TwTUENKXk-6KYx6VBa1H0X3G6xeg&cs=536x0',
+            'Капитан Америка': 'https://sun9-12.userapi.com/s/v1/ig2/tvmGk0j2KtB__2HJkWI7ESyVBAZeIBSvNUzILLJpIZaPYt32LeeffLMA8czjpvwRHeyFwPEcLWZwICIOsTbLeFAP.jpg?quality=95&as=32x48,48x72,72x108,108x162,160x241,240x361,360x541,480x722,540x812,640x962,720x1083,1064x1600&from=bu&u=udipUuD0USLmtMN_qPOc4ZRXgaJJRgaQM4yLT8xnGNE&cs=1064x0',
+            'Халк': 'https://sun9-68.userapi.com/s/v1/ig2/J5aLWST6NQiEbIQe1no7Ad84W3YG4F_PDztKHBA7QjQAGc32phYqhKopQMFabgGLJd7Xz8ynushD1jgxa_SAb-FI.jpg?quality=95&as=32x18,48x27,72x40,108x61,160x90,240x135,360x202,480x270,540x304,640x360,720x405,1080x607,1280x720&from=bu&u=6JVIqaBzTABB2-bMUI0glMbYv3GOcuROUftb8diZjTc&cs=1280x0',
+            'Тор': 'https://sun9-12.userapi.com/s/v1/ig2/4TIxfJABSrE_GmkiVio3P6QLCzN7T3mlhGdw43BcRgeSyEDbqdNqd0Xjn7ZzF3q6k1zj1W0vcijSn2B6IvCejIPK.jpg?quality=95&as=32x18,48x27,72x40,108x61,160x90,240x135,360x202,480x270,540x304,640x360,720x405,1080x607,1280x720&from=bu&u=AA5Foquj99uQn-lDPBdjstIBOIbvWhZn8E430KJE0f4&cs=1280x0',
+            'Чужой': 'https://sun9-80.userapi.com/s/v1/ig2/dpCLRgZaYCfo8O3b1vw0s9hs6c3QC7njXYpLl2yjCEW-G0sUutwLXkMkZmNmU_DwbAlW2z4yhuqHvmHgFBcw7jW2.jpg?quality=95&as=32x32,48x48,72x71,108x107,160x158,240x238,360x357,480x475,540x535,640x634,720x713,735x728&from=bu&u=7Xopi4op2y4DH5Tdkn9TruUAxjxFqeUp1gyeozguSNU&cs=735x0',
+            'Хищник': 'https://sun9-38.userapi.com/s/v1/ig2/z-mlPZNl6aay5oSt6sY5G-vPK7UQauaKHKRH6TVLQ8SX7wX8U1HelVYghPvf2RYHLoi12uE6i7fiLx27zzg88nfl.jpg?quality=95&as=32x17,48x26,72x38,108x58,160x85,240x128,360x192,480x256,540x288,640x341,720x384,1080x576,1280x683,1440x768,1920x1024&from=bu&u=qQl0CGh3Ikv0FnXrVyFALCPFZC82sWemXEXITmcOt4Q&cs=1920x0'
+        };
+
+        const heroList = Object.keys(heroData);
 
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
@@ -208,32 +224,101 @@
         const ctx = canvas.getContext('2d');
         let animationId;
         let keys = {};
+        let mouseState = { left: false, right: false };
         let currentBgImg = new Image();
         let globalFrame = 0;
+        let projectiles = [];
 
         canvas.addEventListener('contextmenu', event => event.preventDefault());
 
+        // --- КЛАСС СНАРЯДОВ ---
+        class Projectile {
+            constructor(x, y, vx, vy, type, owner) {
+                this.x = x; this.y = y; this.vx = vx; this.vy = vy;
+                this.type = type; this.owner = owner;
+                this.w = 20; this.h = 20; this.active = true;
+                this.angle = 0;
+
+                if (type === 'laser') { this.w = 80; this.h = 10; }
+                if (type === 'beam') { this.w = 20; this.h = 80; }
+                if (type === 'shield') { this.w = 30; this.h = 30; this.returnTimer = 40; }
+                if (type === 'axe') { this.w = 30; this.h = 30; }
+                if (type === 'plasma') { this.w = 25; this.h = 25; }
+                if (type === 'grenade') { this.w = 15; this.h = 15; }
+            }
+
+            update() {
+                this.x += this.vx; this.y += this.vy;
+                if (this.type === 'grenade') this.vy += 0.5; // Гранаты падают
+                if (this.type === 'shield') {
+                    this.returnTimer--;
+                    if (this.returnTimer <= 0) { this.vx *= -1; this.returnTimer = 1000; } // Бумеранг
+                }
+                if (this.type === 'axe' || this.type === 'shield') this.angle += 0.3; // Вращение
+
+                if (this.y > groundY || this.x < 0 || this.x > canvas.width) {
+                    this.active = false;
+                }
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                
+                if (this.type === 'laser') { ctx.fillStyle = 'red'; ctx.fillRect(0, 0, this.w, this.h); }
+                if (this.type === 'beam') { ctx.fillStyle = '#00d2ff'; ctx.fillRect(0, 0, this.w, this.h); }
+                if (this.type === 'plasma') { ctx.fillStyle = '#39ff14'; ctx.beginPath(); ctx.arc(10, 10, 15, 0, Math.PI*2); ctx.fill(); }
+                if (this.type === 'grenade') { ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(7, 7, 8, 0, Math.PI*2); ctx.fill(); }
+                
+                if (this.type === 'shield') { 
+                    ctx.rotate(this.angle); 
+                    ctx.fillStyle = 'blue'; ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2); ctx.fill(); 
+                    ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI*2); ctx.fill(); 
+                    ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI*2); ctx.fill(); 
+                }
+                
+                if (this.type === 'axe') { 
+                    ctx.rotate(this.angle); 
+                    ctx.fillStyle = '#777'; ctx.fillRect(-5, -15, 10, 30); 
+                    ctx.fillStyle = '#999'; ctx.fillRect(-15, -15, 30, 15); 
+                }
+                ctx.restore();
+            }
+        }
+
+        // --- КЛАСС БОЙЦА ---
         class Fighter {
             constructor(x, heroName, isPlayer) {
-                this.x = x;
-                this.y = 0; 
-                this.heroName = heroName;
-                this.isPlayer = isPlayer;
+                this.x = x; this.y = 0; 
+                this.heroName = heroName; this.isPlayer = isPlayer;
 
-                // Настройки размеров (Халк больше остальных)
-                this.width = heroName === 'Халк' ? 90 : 60;
-                this.height = heroName === 'Халк' ? 170 : 130;
+                this.width = 80; this.height = 120;
+                this.img = new Image(); this.img.src = heroData[heroName];
 
-                this.vx = 0; this.vy = 0;
-                this.speed = heroName === 'Халк' ? 3.5 : 5;
+                this.vx = 0; this.vy = 0; this.speed = 5;
                 this.jumpPower = -15; this.gravity = 0.8; this.grounded = false;
+                this.hp = 5; this.facingRight = isPlayer; 
                 
-                this.hp = 5;
                 this.isAttacking = false; this.attackType = null; this.attackTimer = 0;
-                this.facingRight = isPlayer; 
+                
+                // Система КОМБО и ФАТАЛИТИ
+                this.comboHistory = [];
+                this.lastAttackTime = 0;
+                this.fatalityCharge = 0;
+                this.isFatalityMode = false;
+                this.fatalityTimeLeft = 0;
+                this.fatalityCooldown = 0;
             }
 
             update(groundY) {
+                // Фаталити: Железный человек летает
+                if (this.isFatalityMode && this.heroName === 'Железный человек') {
+                    this.gravity = 0;
+                    if (this.y > 50) this.vy = -5; else this.vy = 0;
+                } else {
+                    this.gravity = 0.8;
+                }
+
                 this.vy += this.gravity; this.y += this.vy; this.x += this.vx;
 
                 if (this.y + this.height >= groundY) {
@@ -247,6 +332,14 @@
                     this.attackTimer--;
                     if (this.attackTimer <= 0) { this.isAttacking = false; this.attackType = null; }
                 }
+
+                if (this.fatalityCooldown > 0) this.fatalityCooldown--;
+
+                // Таймер Фаталити
+                if (this.isFatalityMode) {
+                    this.fatalityTimeLeft--;
+                    if (this.fatalityTimeLeft <= 0) this.deactivateFatality();
+                }
             }
 
             draw(ctx) {
@@ -254,140 +347,134 @@
                 ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
                 if (!this.facingRight) ctx.scale(-1, 1);
 
-                // Анимация ходьбы (маятник)
-                let swing = (this.vx !== 0 && this.grounded) ? Math.sin(globalFrame * 0.2) * 20 : 0;
-                if (!this.grounded) swing = 15; // Поза в прыжке
+                let bobbing = (this.vx !== 0 && this.grounded) ? Math.sin(globalFrame * 0.3) * 5 : 0;
+                ctx.translate(0, bobbing);
 
-                // Цвета в зависимости от героя
-                let headColor = "#ffcc99", bodyColor = "#333", armColor = "#333", legColor = "#222";
-                let hasCape = false, capeColor = "red", hasShield = false, isAlien = false, isPredator = false;
-
-                switch(this.heroName) {
-                    case 'Железный человек': headColor = "gold"; bodyColor = "#cc0000"; armColor = "#cc0000"; legColor = "gold"; break;
-                    case 'Супермен': headColor = "#ffcc99"; bodyColor = "#0055ff"; armColor = "#0055ff"; legColor = "red"; hasCape = true; break;
-                    case 'Бэтмен': headColor = "#222"; bodyColor = "#444"; armColor = "#222"; legColor = "#222"; hasCape = true; capeColor = "#111"; break;
-                    case 'Капитан Америка': headColor = "blue"; bodyColor = "#0044cc"; armColor = "white"; legColor = "blue"; hasShield = true; break;
-                    case 'Халк': headColor = "#228b22"; bodyColor = "#2e8b57"; armColor = "#2e8b57"; legColor = "#4b0082"; break; // Зеленый, фиолетовые штаны
-                    case 'Тор': headColor = "#ffcc99"; bodyColor = "#777"; armColor = "#ffcc99"; legColor = "#333"; hasCape = true; break;
-                    case 'Чужой': headColor = "#111"; bodyColor = "#111"; armColor = "#111"; legColor = "#111"; isAlien = true; break;
-                    case 'Хищник': headColor = "#5c4033"; bodyColor = "#8b4513"; armColor = "#5c4033"; legColor = "#3e2723"; isPredator = true; break;
+                if (this.isAttacking) {
+                    ctx.translate(20, 0); 
+                    ctx.rotate(this.attackType === 'punch' ? 0.2 : 0.4); 
                 }
 
-                let isPunching = this.isAttacking && this.attackType === 'punch';
-                let isKicking = this.isAttacking && this.attackType === 'kick';
-
-                // Плащ
-                if (hasCape) {
-                    ctx.fillStyle = capeColor;
-                    ctx.beginPath();
-                    ctx.moveTo(-10, -this.height/2 + 20);
-                    ctx.lineTo(-40 - (this.vx*2), this.height/2);
-                    ctx.lineTo(-10 - (this.vx*2), this.height/2);
-                    ctx.fill();
+                // Хвост хищника в фаталити
+                if (this.isFatalityMode && this.heroName === 'Хищник') {
+                    ctx.strokeStyle = "#5c4033"; ctx.lineWidth = 10;
+                    ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(-60, 20, -100, -20); ctx.stroke();
+                    ctx.fillStyle = "silver"; ctx.fillRect(-90, -10, 5, 15); ctx.fillRect(-100, -20, 5, 15);
                 }
 
-                // Хвост чужого
-                if (isAlien) {
-                    ctx.strokeStyle = "#222"; ctx.lineWidth = 8;
-                    ctx.beginPath();
-                    ctx.moveTo(-10, 10);
-                    ctx.quadraticCurveTo(-60, 20, -50 + swing, -30);
-                    ctx.stroke();
+                if (this.img.complete) {
+                    ctx.drawImage(this.img, -this.width / 2, -this.height / 2, this.width, this.height);
+                    
+                    // Ауры
+                    ctx.strokeStyle = this.isFatalityMode ? (this.isPlayer ? "#00ff00" : "#ff00ff") : (this.isPlayer ? "#00d2ff" : "#c1121f");
+                    if (this.isFatalityMode) ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 15;
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(-this.width / 2, -this.height / 2, this.width, this.height);
+                    ctx.shadowBlur = 0;
                 }
 
-                // Задняя нога
-                ctx.fillStyle = legColor;
-                ctx.save(); ctx.translate(0, 10); ctx.rotate(-swing * Math.PI/180); ctx.fillRect(-10, 0, 15, this.height/2 - 10); ctx.restore();
-
-                // Задняя рука
-                ctx.fillStyle = armColor;
-                ctx.save(); ctx.translate(0, -this.height/2 + 20); ctx.rotate(swing * Math.PI/180); ctx.fillRect(-8, 0, 12, this.height/2 - 20); ctx.restore();
-
-                // Тело
-                ctx.fillStyle = bodyColor;
-                ctx.fillRect(-this.width/2 + 10, -this.height/2 + 20, this.width - 20, this.height/2 - 10);
-
-                // Голова
-                ctx.fillStyle = headColor;
-                if (isAlien) {
-                    ctx.beginPath(); ctx.ellipse(10, -this.height/2 + 10, 25, 12, 0, 0, Math.PI*2); ctx.fill(); // Вытянутая голова
-                } else {
-                    ctx.beginPath(); ctx.arc(0, -this.height/2 + 5, 18, 0, Math.PI*2); ctx.fill();
+                if (this.isAttacking && !this.isFatalityMode) {
+                    let hitColor = this.attackType === 'punch' ? "rgba(255, 204, 0, 0.9)" : "rgba(255, 69, 0, 0.9)";
+                    let hitX = this.attackType === 'punch' ? this.width/2 + 10 : this.width/2 + 30;
+                    let hitY = this.attackType === 'punch' ? -20 : 30;
+                    
+                    ctx.fillStyle = hitColor; ctx.beginPath(); ctx.arc(hitX, hitY, 18, 0, Math.PI * 2); ctx.fill();
+                    ctx.strokeStyle = "white"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(hitX - 25, hitY - 25); ctx.lineTo(hitX + 25, hitY + 25); ctx.stroke();
                 }
-
-                // Ушки Бэтмена
-                if (this.heroName === 'Бэтмен') {
-                    ctx.beginPath(); ctx.moveTo(-15, -this.height/2); ctx.lineTo(-10, -this.height/2 - 20); ctx.lineTo(-5, -this.height/2 - 10); ctx.fill();
-                    ctx.beginPath(); ctx.moveTo(15, -this.height/2); ctx.lineTo(10, -this.height/2 - 20); ctx.lineTo(5, -this.height/2 - 10); ctx.fill();
-                }
-
-                // Дреды Хищника
-                if (isPredator) {
-                    ctx.strokeStyle = "black"; ctx.lineWidth = 3;
-                    for(let i=0; i<4; i++) {
-                        ctx.beginPath(); ctx.moveTo(-10, -this.height/2 + 5); ctx.lineTo(-20 - i*5, -this.height/2 + 30 + swing/2); ctx.stroke();
-                    }
-                }
-
-                // Передняя нога (Атака KICK)
-                ctx.fillStyle = legColor;
-                ctx.save(); 
-                ctx.translate(0, 10); 
-                if (isKicking) {
-                    ctx.rotate(-Math.PI/2); // Вытянута вперед
-                    ctx.fillRect(-10, 0, 18, this.height/2 + 10); // Длиннее при ударе
-                } else {
-                    ctx.rotate(swing * Math.PI/180); 
-                    ctx.fillRect(-10, 0, 18, this.height/2 - 10); 
-                }
-                ctx.restore();
-
-                // Передняя рука (Атака PUNCH)
-                ctx.fillStyle = armColor;
-                ctx.save(); 
-                ctx.translate(0, -this.height/2 + 20); 
-                if (isPunching) {
-                    ctx.rotate(-Math.PI/2); // Вытянута вперед
-                    ctx.fillRect(-8, 0, 15, this.height/2 + 10);
-                    // Щит Кэпа при ударе
-                    if (hasShield) { ctx.fillStyle = "red"; ctx.beginPath(); ctx.arc(-2, this.height/2, 12, 0, Math.PI*2); ctx.fill(); }
-                } else {
-                    ctx.rotate(-swing * Math.PI/180); 
-                    ctx.fillRect(-8, 0, 15, this.height/2 - 20); 
-                    // Щит Кэпа в покое
-                    if (hasShield) { ctx.fillStyle = "red"; ctx.beginPath(); ctx.arc(0, this.height/4, 15, 0, Math.PI*2); ctx.fill(); ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(0, this.height/4, 5, 0, Math.PI*2); ctx.fill(); }
-                }
-                ctx.restore();
 
                 ctx.restore();
             }
 
             attack(type) {
                 if (!this.isAttacking) {
+                    // Обработка КОМБО
+                    let now = Date.now();
+                    if (now - this.lastAttackTime > 1500) this.comboHistory = []; 
+                    this.lastAttackTime = now;
+                    this.comboHistory.push(type);
+
+                    if (this.comboHistory.join(',') === 'punch,kick,punch') {
+                        this.fatalityCharge += 50; 
+                        if (this.fatalityCharge > 100) this.fatalityCharge = 100;
+                        this.comboHistory = [];
+                        updateUI(); 
+                    } else if (this.comboHistory.length >= 3) {
+                        this.comboHistory.shift(); 
+                    }
+
                     this.isAttacking = true; this.attackType = type;
                     this.attackTimer = type === 'punch' ? 12 : 20; 
+
+                    // Если фаталити активно - спавним снаряды!
+                    if (this.isFatalityMode) this.useFatalityAttack();
                 }
+            }
+
+            useFatalityAttack() {
+                if (this.fatalityCooldown > 0) return;
+                let dir = this.facingRight ? 1 : -1;
+                
+                if (this.heroName === 'Железный человек') projectiles.push(new Projectile(this.x + this.width/2, this.y + this.height, 0, 15, 'beam', this));
+                else if (this.heroName === 'Супермен') projectiles.push(new Projectile(this.x + this.width/2, this.y + 20, dir * 20, 0, 'laser', this));
+                else if (this.heroName === 'Бэтмен') projectiles.push(new Projectile(this.x + this.width/2, this.y + 20, dir * 12, -8, 'grenade', this));
+                else if (this.heroName === 'Капитан Америка') projectiles.push(new Projectile(this.x + this.width/2, this.y + 40, dir * 18, 0, 'shield', this));
+                else if (this.heroName === 'Тор') projectiles.push(new Projectile(this.x + this.width/2, this.y + 40, dir * 15, 0, 'axe', this));
+                else if (this.heroName === 'Чужой') projectiles.push(new Projectile(this.x + (this.facingRight ? this.width : -20), this.y + 20, dir * 25, 0, 'plasma', this));
+                
+                this.fatalityCooldown = 30; // Пауза между выстрелами
+            }
+
+            activateFatality() {
+                this.isFatalityMode = true;
+                this.fatalityTimeLeft = 20 * 60; // 20 секунд (при 60 FPS)
+                
+                if (this.heroName === 'Халк') {
+                    let oldH = this.height;
+                    this.width *= 1.5; this.height *= 1.5;
+                    this.y -= (this.height - oldH);
+                }
+                updateUI();
+            }
+
+            deactivateFatality() {
+                this.isFatalityMode = false;
+                this.fatalityCharge = 0;
+                
+                if (this.heroName === 'Халк') {
+                    let oldH = this.height;
+                    this.width /= 1.5; this.height /= 1.5;
+                    this.y -= (this.height - oldH);
+                }
+                updateUI();
             }
 
             getAttackBox() {
                 let box = { w: 0, h: 0, x: 0, y: 0 };
                 if (this.attackType === 'punch') {
-                    box.w = 50; box.h = 20;
-                    box.x = this.facingRight ? this.x + this.width/2 : this.x + this.width/2 - box.w;
+                    box.w = 60; box.h = 40;
+                    box.x = this.facingRight ? this.x + this.width : this.x - box.w;
                     box.y = this.y + this.height/4; 
                 } else if (this.attackType === 'kick') {
-                    box.w = 60; box.h = 25; 
-                    box.x = this.facingRight ? this.x + this.width/2 : this.x + this.width/2 - box.w;
+                    box.w = 80; box.h = 40; 
+                    box.x = this.facingRight ? this.x + this.width : this.x - box.w;
                     box.y = this.y + this.height/2; 
                 }
+
+                // Огромный хитбокс Хищника
+                if (this.isFatalityMode && this.heroName === 'Хищник') box.w = 160; 
+
                 return box;
             }
 
             aiThink(enemy) {
                 if (this.isPlayer) return;
+                
+                // Если ИИ накопил заряд (случайно набил комбо) - он тоже активирует!
+                if (this.fatalityCharge >= 100 && !this.isFatalityMode) this.activateFatality();
+
                 let dist = enemy.x - this.x; let absDist = Math.abs(dist);
-                let moveChance = 0.7, attackRange = 70, attackChance = 0.05;
-                if (gameSettings.difficulty === 'hard') { moveChance = 0.9; attackRange = 85; attackChance = 0.1; }
+                let moveChance = 0.7, attackRange = 80, attackChance = 0.05;
+                if (gameSettings.difficulty === 'hard') { moveChance = 0.9; attackRange = 95; attackChance = 0.1; }
 
                 if (absDist > attackRange) {
                     if (Math.random() < moveChance) this.vx = dist > 0 ? this.speed * 0.8 : -this.speed * 0.8;
@@ -412,20 +499,40 @@
             document.getElementById('p2-wins').innerText = `Побед: ${matchState.p2Wins}`;
             document.getElementById('round-counter').innerText = `Раунд ${matchState.currentRound}`;
             document.getElementById('round-timer').innerText = matchState.timeLeft;
+
+            // Обновление полосок Фаталити
+            document.getElementById('p1-fatality').style.width = p1.fatalityCharge + "%";
+            document.getElementById('p2-fatality').style.width = p2.fatalityCharge + "%";
+
+            if (p1.isFatalityMode) {
+                document.getElementById('p1-f-text').innerText = "ФАТАЛИТИ!";
+                document.getElementById('p1-f-text').style.color = "red";
+            } else {
+                document.getElementById('p1-f-text').innerText = p1.fatalityCharge >= 100 ? "ГОТОВО! (ЛКМ + ПКМ)" : `КОМБО: ${p1.fatalityCharge}%`;
+                document.getElementById('p1-f-text').style.color = "white";
+            }
         }
 
-        function checkHit(attacker, defender) {
+        function applyDamage(target, attacker, isProjectile = false, projType = '') {
+            let dmg = 1;
+            // Усиленный урон в Фаталити для рукопашников
+            if (attacker.isFatalityMode && (attacker.heroName === 'Халк' || attacker.heroName === 'Хищник')) dmg = 3;
+            // Смертельный выстрел Чужого
+            if (isProjectile && projType === 'plasma') dmg = 5;
+
+            target.hp -= dmg;
+            target.vx = (attacker.x < target.x) ? 15 : -15; 
+            target.vy = -5; 
+            updateUI();
+            checkRoundEnd();
+        }
+
+        function checkMeleeHit(attacker, defender) {
             if (attacker.isAttacking && attacker.attackTimer === (attacker.attackType === 'punch' ? 10 : 18)) {
                 let box = attacker.getAttackBox();
                 if (box.x < defender.x + defender.width && box.x + box.w > defender.x &&
                     box.y < defender.y + defender.height && box.y + box.h > defender.y) {
-                    
-                    defender.hp--;
-                    defender.vx = attacker.facingRight ? 12 : -12;
-                    defender.vy = -5; 
-                    updateUI();
-                    
-                    checkRoundEnd();
+                    applyDamage(defender, attacker);
                 }
             }
         }
@@ -435,10 +542,7 @@
             matchState.timeLeft--;
             updateUI();
             if (matchState.timeLeft <= 0) {
-                // Если время вышло, побеждает тот, у кого больше ХП
-                if (p1.hp > p2.hp) p2.hp = 0;
-                else if (p2.hp > p1.hp) p1.hp = 0;
-                else { p1.hp = 0; p2.hp = 0; } // Ничья
+                if (p1.hp > p2.hp) p2.hp = 0; else if (p2.hp > p1.hp) p1.hp = 0; else { p1.hp = 0; p2.hp = 0; } 
                 checkRoundEnd();
             }
         }
@@ -449,8 +553,8 @@
                 clearInterval(timerInterval);
 
                 let text = "НИЧЬЯ!";
-                if (p1.hp > 0) { matchState.p1Wins++; text = `${p1.heroName} ПОБЕДИЛ В РАУНДЕ!`; }
-                else if (p2.hp > 0) { matchState.p2Wins++; text = `${p2.heroName} ПОБЕДИЛ В РАУНДЕ!`; }
+                if (p1.hp > 0 && p2.hp <= 0) { matchState.p1Wins++; text = `${p1.heroName} ПОБЕДИЛ!`; }
+                else if (p2.hp > 0 && p1.hp <= 0) { matchState.p2Wins++; text = `${p2.heroName} ПОБЕДИЛ!`; }
 
                 document.getElementById('round-text').innerText = text;
                 document.getElementById('round-overlay').style.display = 'flex';
@@ -486,28 +590,42 @@
 
         function startRound(aiHeroName = null) {
             document.getElementById('round-overlay').style.display = 'none';
+            projectiles = []; // Очищаем арену от снарядов
             
             p1 = new Fighter(100, gameSettings.character, true); 
             p2 = new Fighter(canvas.width - 200, aiHeroName || document.getElementById('p2-name').innerText, false); 
             p2.facingRight = false; 
 
-            matchState.timeLeft = 90;
-            matchState.isPlaying = true;
+            matchState.timeLeft = 90; matchState.isPlaying = true;
             updateUI();
 
-            clearInterval(timerInterval);
-            timerInterval = setInterval(timerTick, 1000);
-
+            clearInterval(timerInterval); timerInterval = setInterval(timerTick, 1000);
             if (!animationId) gameLoop();
         }
 
         window.addEventListener('keydown', e => keys[e.code] = true);
         window.addEventListener('keyup', e => keys[e.code] = false);
 
+        // Отслеживаем одновременное нажатие
         canvas.addEventListener('mousedown', e => {
             if (!matchState.isPlaying) return;
-            if (e.button === 0) p1.attack('punch'); 
-            if (e.button === 2) p1.attack('kick');  
+            if (e.button === 0) mouseState.left = true;
+            if (e.button === 2) mouseState.right = true;
+
+            // Активация Фаталити
+            if (mouseState.left && mouseState.right) {
+                if (p1.fatalityCharge >= 100 && !p1.isFatalityMode) {
+                    p1.activateFatality();
+                }
+            } else {
+                if (e.button === 0) p1.attack('punch'); 
+                if (e.button === 2) p1.attack('kick');  
+            }
+        });
+
+        canvas.addEventListener('mouseup', e => {
+            if (e.button === 0) mouseState.left = false;
+            if (e.button === 2) mouseState.right = false;
         });
 
         function gameLoop() {
@@ -531,7 +649,25 @@
                 if (!p1.grounded || Math.abs(p1.vx) > p1.speed) p1.vx *= 0.9;
 
                 p1.update(groundY); p2.update(groundY);
-                checkHit(p1, p2); checkHit(p2, p1);
+                checkMeleeHit(p1, p2); checkMeleeHit(p2, p1);
+
+                // Обновление и проверка снарядов
+                for (let i = projectiles.length - 1; i >= 0; i--) {
+                    let proj = projectiles[i];
+                    proj.update();
+                    proj.draw(ctx);
+
+                    let target = proj.owner === p1 ? p2 : p1;
+                    
+                    if (proj.active && 
+                        proj.x < target.x + target.width && proj.x + proj.w > target.x &&
+                        proj.y < target.y + target.height && proj.y + proj.h > target.y) {
+                        
+                        applyDamage(target, proj.owner, true, proj.type);
+                        proj.active = false;
+                    }
+                    if (!proj.active) projectiles.splice(i, 1);
+                }
             }
 
             p1.draw(ctx); p2.draw(ctx);
@@ -541,4 +677,3 @@
     </script>
 </body>
 </html>
-
