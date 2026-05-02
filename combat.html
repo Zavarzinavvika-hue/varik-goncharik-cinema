@@ -74,21 +74,28 @@
 
         .fatality-bar { width: 150px; height: 10px; background: #333; margin-top: 5px; border: 1px solid #000; position: relative;}
         .fatality-fill { width: 0%; height: 100%; background: #00d2ff; transition: width 0.3s; box-shadow: 0 0 10px #00d2ff;}
-        .fatality-text { position: absolute; width: 100%; text-align: center; top: -2px; font-size: 10px; color: white; font-weight: bold; text-shadow: 1px 1px 1px black; }
+        .fatality-text { position: absolute; width: 100%; text-align: center; top: -2px; font-size: 10px; color: white; font-weight: bold; text-shadow: 1px 1px 1px black; pointer-events: none;}
 
-        .timer-box { text-align: center; width: 20%; }
+        .timer-box { text-align: center; width: 20%; display: flex; flex-direction: column; align-items: center;}
         .timer { font-size: 40px; font-weight: 900; color: white; text-shadow: 0 0 10px var(--mortal-red); }
         .round { font-size: 14px; color: var(--gold); text-transform: uppercase; font-weight: bold;}
+        
+        .btn-pause-small {
+            margin-top: 5px; padding: 5px 10px; background: rgba(0,0,0,0.6); 
+            border: 1px solid var(--gold); color: var(--gold); font-weight: bold; 
+            border-radius: 5px; cursor: pointer; text-transform: uppercase; font-size: 12px;
+        }
+
         .wins-counter { font-size: 14px; color: white; text-transform: uppercase; margin-top: 5px; }
 
         #fight-canvas { display: block; width: 100%; height: 100%; }
 
-        #round-overlay {
+        #overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8); z-index: 50; display: none;
+            background: rgba(0,0,0,0.85); z-index: 50; display: none;
             flex-direction: column; align-items: center; justify-content: center;
         }
-        #round-text { font-size: 50px; color: var(--gold); font-weight: bold; text-transform: uppercase; text-shadow: 0 0 20px red; margin-bottom: 20px; text-align: center;}
+        #overlay-title { font-size: 50px; color: var(--gold); font-weight: bold; text-transform: uppercase; text-shadow: 0 0 20px red; margin-bottom: 20px; text-align: center;}
     </style>
 </head>
 <body>
@@ -154,6 +161,8 @@
             <div class="timer-box">
                 <div class="timer" id="round-timer">90</div>
                 <div class="round" id="round-counter">Раунд 1</div>
+                <!-- КНОПКА ПАУЗЫ -->
+                <button class="btn-pause-small" onclick="togglePause()">Пауза (P)</button>
             </div>
 
             <div class="player-info right">
@@ -167,9 +176,10 @@
         </div>
         <canvas id="fight-canvas"></canvas>
 
-        <div id="round-overlay">
-            <div id="round-text">КОНЕЦ РАУНДА</div>
-            <button class="btn" id="btn-menu-return" style="display:none;" onclick="window.location.reload()">Главное меню</button>
+        <div id="overlay">
+            <div id="overlay-title">КОНЕЦ РАУНДА</div>
+            <button class="btn" id="btn-resume" style="display:none;" onclick="togglePause()">Продолжить</button>
+            <button class="btn btn-secondary" id="btn-menu-return" style="display:none;" onclick="window.location.reload()">Главное меню</button>
         </div>
     </div>
 
@@ -178,7 +188,7 @@
         tg.expand();
 
         let gameSettings = { difficulty: 'easy', character: 'Железный человек', map: 'city' };
-        let matchState = { currentRound: 1, p1Wins: 0, p2Wins: 0, timeLeft: 90, isPlaying: false };
+        let matchState = { currentRound: 1, p1Wins: 0, p2Wins: 0, timeLeft: 90, isPlaying: false, isPaused: false };
         let timerInterval;
 
         const mapData = {
@@ -219,6 +229,24 @@
         let projectiles = [];
 
         canvas.addEventListener('contextmenu', event => event.preventDefault());
+
+        // --- ЛОГИКА ПАУЗЫ ---
+        function togglePause() {
+            if (!matchState.isPlaying && !matchState.isPaused) return; // Нельзя ставить паузу если бой еще не идет или уже кончился
+            
+            matchState.isPaused = !matchState.isPaused;
+            
+            let overlay = document.getElementById('overlay');
+            if (matchState.isPaused) {
+                document.getElementById('overlay-title').innerText = "ПАУЗА";
+                document.getElementById('btn-resume').style.display = "block";
+                document.getElementById('btn-menu-return').style.display = "block";
+                overlay.style.display = "flex";
+            } else {
+                overlay.style.display = "none";
+                document.getElementById('btn-resume').style.display = "none";
+            }
+        }
 
         class Projectile {
             constructor(x, y, vx, vy, type, owner) {
@@ -423,7 +451,8 @@
                 ctx.save(); 
                 ctx.translate(0, torsoH/2 - 5); 
                 if (isKicking) {
-                    ctx.rotate(-Math.PI/2); ctx.fillRect(-legW/2, 0, legW, legH + 10); 
+                    // ИСПРАВЛЕНИЕ: Немного увеличиваем длину и угол ноги при ударе
+                    ctx.rotate(-Math.PI/2.2); ctx.fillRect(-legW/2, 0, legW, legH + 20); 
                 } else {
                     ctx.rotate(swing * Math.PI/180); ctx.fillRect(-legW/2, 0, legW, legH); 
                 }
@@ -462,7 +491,7 @@
                     this.lastAttackTime = now;
                     this.comboHistory.push(type);
 
-                    // НОВАЯ СИСТЕМА КОМБО: 3 удара рукой ИЛИ 3 удара ногой
+                    // СИСТЕМА КОМБО: 3 удара рукой ИЛИ 3 удара ногой
                     let comboStr = this.comboHistory.join(',');
                     if (comboStr === 'punch,punch,punch' || comboStr === 'kick,kick,kick') {
                         this.fatalityCharge = 100; // Сразу 100% за комбо!
@@ -527,7 +556,8 @@
                     box.x = this.facingRight ? this.x + this.width : this.x - box.w;
                     box.y = this.y + this.height/4; 
                 } else if (this.attackType === 'kick') {
-                    box.w = 60; box.h = 25; 
+                    // ИСПРАВЛЕНИЕ: Увеличен хитбокс для удара ногой
+                    box.w = 70; box.h = 30; 
                     box.x = this.facingRight ? this.x + this.width : this.x - box.w;
                     box.y = this.y + this.height/2; 
                 }
@@ -611,7 +641,7 @@
         }
 
         function timerTick() {
-            if (!matchState.isPlaying) return;
+            if (!matchState.isPlaying || matchState.isPaused) return;
             matchState.timeLeft--;
             updateUI();
             if (matchState.timeLeft <= 0) {
@@ -630,11 +660,16 @@
                 else if (p2.hp > 0 && p1.hp <= 0) { matchState.p2Wins++; text = `${p2.heroName} ПОБЕДИЛ!`; }
 
                 document.getElementById('round-text').innerText = text;
-                document.getElementById('round-overlay').style.display = 'flex';
+                
+                let overlay = document.getElementById('overlay');
+                document.getElementById('overlay-title').innerText = text;
+                document.getElementById('btn-resume').style.display = "none";
+                document.getElementById('btn-menu-return').style.display = "none";
+                overlay.style.display = 'flex';
 
                 setTimeout(() => {
                     if (matchState.p1Wins >= 2 || matchState.p2Wins >= 2) {
-                        document.getElementById('round-text').innerText = matchState.p1Wins >= 2 ? "ВЫ ВЫИГРАЛИ БОЙ!" : "ВЫ ПРОИГРАЛИ...";
+                        document.getElementById('overlay-title').innerText = matchState.p1Wins >= 2 ? "ВЫ ВЫИГРАЛИ БОЙ!" : "ВЫ ПРОИГРАЛИ...";
                         document.getElementById('btn-menu-return').style.display = 'block';
                     } else {
                         matchState.currentRound++;
@@ -656,31 +691,34 @@
             document.getElementById('p1-name').innerText = gameSettings.character;
             document.getElementById('p2-name').innerText = randomAiHero;
             
-            matchState = { currentRound: 1, p1Wins: 0, p2Wins: 0, timeLeft: 90, isPlaying: false };
+            matchState = { currentRound: 1, p1Wins: 0, p2Wins: 0, timeLeft: 90, isPlaying: false, isPaused: false };
             
             startRound(randomAiHero);
         }
 
         function startRound(aiHeroName = null) {
-            document.getElementById('round-overlay').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
             projectiles = []; 
             
             p1 = new Fighter(100, gameSettings.character, true); 
             p2 = new Fighter(canvas.width - 200, aiHeroName || document.getElementById('p2-name').innerText, false); 
             p2.facingRight = false; 
 
-            matchState.timeLeft = 90; matchState.isPlaying = true;
+            matchState.timeLeft = 90; matchState.isPlaying = true; matchState.isPaused = false;
             updateUI();
 
             clearInterval(timerInterval); timerInterval = setInterval(timerTick, 1000);
             if (!animationId) gameLoop();
         }
 
-        window.addEventListener('keydown', e => keys[e.code] = true);
+        window.addEventListener('keydown', e => {
+            if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
+            keys[e.code] = true;
+        });
         window.addEventListener('keyup', e => keys[e.code] = false);
 
         canvas.addEventListener('mousedown', e => {
-            if (!matchState.isPlaying) return;
+            if (!matchState.isPlaying || matchState.isPaused) return;
             if (e.button === 0) mouseState.left = true;
             if (e.button === 2) mouseState.right = true;
 
@@ -700,12 +738,12 @@
         });
 
         function gameLoop() {
-            globalFrame++;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (currentBgImg.complete) ctx.drawImage(currentBgImg, 0, 0, canvas.width, canvas.height);
-            else { ctx.fillStyle = "black"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+            if (matchState.isPlaying && !matchState.isPaused) {
+                globalFrame++;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                if (currentBgImg.complete) ctx.drawImage(currentBgImg, 0, 0, canvas.width, canvas.height);
+                else { ctx.fillStyle = "black"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
 
-            if (matchState.isPlaying) {
                 p1.vx = 0;
                 if (keys['KeyA']) { p1.vx = -p1.speed; p1.facingRight = false; }
                 if (keys['KeyD']) { p1.vx = p1.speed; p1.facingRight = true; }
@@ -738,9 +776,9 @@
                     }
                     if (!proj.active) projectiles.splice(i, 1);
                 }
+                
+                p1.draw(ctx); p2.draw(ctx);
             }
-
-            p1.draw(ctx); p2.draw(ctx);
             animationId = requestAnimationFrame(gameLoop);
         }
 
