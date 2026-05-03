@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Спасатель</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
@@ -25,6 +26,7 @@
             margin: 0; padding: 0; width: 100%; height: 100%;
             background-color: var(--bg-dark); font-family: 'Share Tech Mono', monospace;
             color: var(--text-color); overflow: hidden; user-select: none;
+            /* touch-action: none убрано, чтобы работал скролл на телефоне */
         }
 
         .screen {
@@ -35,170 +37,191 @@
 
         .active-screen { display: flex !important; }
 
-        /* Main Menu */
+        /* --- ГЛАВНОЕ МЕНЮ --- */
         #main-menu {
             background: radial-gradient(circle at center, #1a1a1c 0%, #050505 100%);
         }
 
         .menu-image-container {
-            width: 90%; max-width: 300px; margin-bottom: 20px;
-            border: 2px solid #333; border-radius: 8px; overflow: hidden;
+            width: 90%; max-width: 320px; height: 40vh; margin-bottom: 25px;
+            border: 2px solid #333; border-radius: 12px; overflow: hidden;
             box-shadow: 0 0 40px rgba(255, 51, 51, 0.15); background: #000;
+            display: flex; justify-content: center; align-items: center;
         }
         
         .menu-image-container img {
-            width: 100%; height: auto; display: block; opacity: 0.8;
+            width: 100%; height: 100%; object-fit: contain; display: block; opacity: 0.9;
         }
 
-        h1 { font-size: 50px; color: var(--accent-red); text-shadow: 0 0 20px rgba(255,51,51,0.5); text-transform: uppercase; margin-bottom: 40px; letter-spacing: 5px; text-align: center;}
+        h1 { font-size: clamp(35px, 8vw, 50px); color: var(--accent-red); text-shadow: 0 0 20px rgba(255,51,51,0.5); text-transform: uppercase; margin-bottom: 30px; letter-spacing: 3px; text-align: center;}
         
         .btn {
             background: #222; color: var(--text-color); border: 2px solid var(--accent-red);
-            padding: 15px 40px; font-size: 20px; font-family: 'Share Tech Mono', monospace;
+            padding: 15px 30px; font-size: 18px; font-family: 'Share Tech Mono', monospace;
             cursor: pointer; margin: 10px; transition: 0.2s; text-transform: uppercase; letter-spacing: 2px;
-            box-shadow: inset 0 0 10px rgba(255, 51, 51, 0.1);
+            box-shadow: inset 0 0 10px rgba(255, 51, 51, 0.1); width: 80%; max-width: 300px;
+            -webkit-tap-highlight-color: transparent; border-radius: 6px;
         }
-        .btn:hover { background: var(--accent-red); color: #000; box-shadow: 0 0 20px var(--accent-red); }
+        .btn:active { background: var(--accent-red); color: #000; box-shadow: 0 0 20px var(--accent-red); transform: scale(0.95); }
         .btn-secondary { border-color: #444; box-shadow: none; color: #aaa;}
-        .btn-secondary:hover { background: #444; color: white; box-shadow: 0 0 10px white; border-color: white;}
+        .btn-secondary:active { background: #444; color: white; box-shadow: 0 0 10px white; border-color: white;}
 
-        /* Settings Screen */
-        #settings-screen { background: #0a0a0a; }
-        .diff-btn { display: block; width: 300px; margin: 10px auto; }
-        .diff-desc { font-size: 14px; color: #666; margin-bottom: 20px; text-align: center; }
+        /* --- НАСТРОЙКИ --- */
+        #settings-screen { background: #0a0a0a; overflow-y: auto; padding: 20px 0;}
+        .diff-btn { display: block; width: 85%; max-width: 300px; margin: 10px auto; }
+        .diff-desc { font-size: 13px; color: #666; margin-bottom: 25px; text-align: center; padding: 0 20px;}
 
-        /* Game Screen */
+        /* --- ИГРОВОЙ ЭКРАН --- */
         #game-screen {
-            background: #111;
+            background: #050505;
+            justify-content: flex-start; /* Прижимаем контент к верху для скролла */
+            padding-top: 2vh;
         }
         
-        /* Главный корпус бомбы */
+        /* Главный корпус бомбы (Адаптивный скролл) */
         .bomb-casing {
-            width: 95%; max-width: 1050px; height: 92%; 
+            width: 96%; max-width: 1100px; height: 88vh; 
             background: linear-gradient(135deg, #242426, #1a1a1c);
-            border: 6px solid #080808; border-radius: 12px; display: grid;
-            grid-template-columns: repeat(3, 1fr); grid-template-rows: auto 1fr 1fr;
-            gap: 15px; padding: 20px; box-sizing: border-box;
-            box-shadow: inset 0 0 60px rgba(0,0,0,0.9), 0 15px 40px rgba(0,0,0,0.8);
-            position: relative;
+            border: 4px solid #111; border-radius: 12px; 
+            display: grid;
+            /* МАГИЯ АДАПТИВНОСТИ: На ПК 3 колонки, на телефоне 1 колонка */
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+            grid-auto-rows: max-content;
+            gap: 15px; padding: 15px; box-sizing: border-box;
+            box-shadow: inset 0 0 60px rgba(0,0,0,0.9), 0 10px 30px rgba(0,0,0,0.8);
+            overflow-y: auto; /* Включаем прокрутку */
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 80px; /* Место под кнопку инструкции */
         }
+
+        /* Кастомизация скроллбара для ПК */
+        .bomb-casing::-webkit-scrollbar { width: 8px; }
+        .bomb-casing::-webkit-scrollbar-track { background: #111; border-radius: 4px;}
+        .bomb-casing::-webkit-scrollbar-thumb { background: #444; border-radius: 4px;}
 
         /* Общий стиль модулей */
         .module {
             background: linear-gradient(to bottom, #1c1c1e, #141416); 
-            border: 2px solid #000; border-radius: 6px;
-            padding: 15px; display: flex; flex-direction: column; align-items: center; justify-content: space-evenly;
-            box-shadow: inset 0 0 15px rgba(0,0,0,0.8), 0 5px 10px rgba(0,0,0,0.4); 
-            position: relative; overflow: hidden;
+            border: 2px solid #000; border-radius: 8px;
+            padding: 20px 15px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.8), 0 4px 8px rgba(0,0,0,0.5); 
+            position: relative; overflow: hidden; min-height: 180px;
         }
         
-        /* Цветные полоски для разных блоков */
-        #mod-power { border-top: 3px solid #d32f2f; }
-        #mod-keypad { border-top: 3px solid #388e3c; justify-content: center; gap: 6px; } /* Улучшенное выравнивание */
-        #mod-screen-wires { border-top: 3px solid #fbc02d; }
-        #mod-signal { border-top: 3px solid #1b5e20; }
-        #mod-logic { border-top: 3px solid #7b1fa2; }
-        #mod-cooling { border-top: 3px solid #00bcd4; }
-        #mod-security { border-top: 3px solid #424242; }
+        /* Цвета модулей */
+        #mod-power { border-top: 4px solid #d32f2f; }
+        #mod-keypad { border-top: 4px solid #388e3c; } 
+        #mod-screen-wires { border-top: 4px solid #fbc02d; }
+        #mod-signal { border-top: 4px solid #1b5e20; }
+        #mod-logic { border-top: 4px solid #7b1fa2; }
+        #mod-cooling { border-top: 4px solid #00bcd4; }
+        #mod-security { border-top: 4px solid #424242; }
 
         .module-title {
-            position: absolute; top: 8px; left: 12px; font-size: 11px; color: #777; text-transform: uppercase; letter-spacing: 1px;
+            position: absolute; top: 8px; left: 12px; font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; font-weight: bold;
         }
 
-        /* Module 4: Display (Timer & Errors) */
+        /* Дисплей таймера (растягивается на всю ширину) */
         .module-display { 
-            grid-column: span 3; background: #080808; border: 2px solid #111; 
-            border-top: 3px solid #333;
-            flex-direction: row; justify-content: space-between; padding: 15px 30px;
-            box-shadow: inset 0 0 20px rgba(0,0,0,1);
+            grid-column: 1 / -1; /* Занимает всю ширину сетки */
+            background: #080808; border: 2px solid #111; 
+            border-top: 4px solid #444;
+            flex-direction: row; justify-content: space-between; padding: 15px 20px;
+            box-shadow: inset 0 0 30px rgba(0,0,0,1);
+            position: sticky; top: 0; z-index: 5; /* Таймер всегда на виду при скролле */
+            min-height: auto;
         }
-        .timer { font-size: 70px; color: var(--accent-red); text-shadow: 0 0 20px rgba(255,51,51,0.8); font-weight: bold; letter-spacing: 4px; line-height: 1;}
-        .strikes { display: flex; gap: 12px; }
-        .strike-indicator { width: 25px; height: 25px; border-radius: 50%; border: 2px solid #333; background: #111; box-shadow: inset 0 2px 5px rgba(0,0,0,0.8);}
+        .timer { font-size: clamp(40px, 10vw, 70px); color: var(--accent-red); text-shadow: 0 0 20px rgba(255,51,51,0.8); font-weight: bold; letter-spacing: 2px; line-height: 1;}
+        .strikes { display: flex; gap: 8px; }
+        .strike-indicator { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #333; background: #111; box-shadow: inset 0 2px 5px rgba(0,0,0,0.8);}
         .strike-indicator.active { background: var(--accent-red); border-color: #ffaaaa; box-shadow: 0 0 15px var(--accent-red); animation: blink 1s infinite; }
 
-        @keyframes blink { 0% {opacity: 1;} 50% {opacity: 0.3;} 100% {opacity: 1;} }
-
-        /* Wires */
-        .wire-container { display: flex; flex-direction: column; gap: 12px; width: 100%; align-items: center; margin-top: 25px;}
-        .wire-wrap { display: flex; align-items: center; gap: 12px; width: 85%; }
+        /* --- ПРОВОДА (ОПТИМИЗИРОВАНЫ ДЛЯ ПАЛЬЦЕВ) --- */
+        .wire-container { display: flex; flex-direction: column; gap: 15px; width: 100%; align-items: center; margin-top: 25px;}
+        .wire-wrap { display: flex; align-items: center; justify-content: center; width: 90%; }
         
         .wire { 
-            height: 14px; flex-grow: 1; border-radius: 7px; cursor: crosshair; position: relative; 
-            box-shadow: inset 0 4px 5px rgba(255,255,255,0.2), inset 0 -4px 5px rgba(0,0,0,0.6), 0 5px 8px rgba(0,0,0,0.7);
+            height: 24px; /* ТОЛСТЫЕ ПРОВОДА ДЛЯ ТЕЛЕФОНА */
+            width: 100%; border-radius: 12px; cursor: pointer; position: relative; 
+            box-shadow: inset 0 6px 6px rgba(255,255,255,0.2), inset 0 -6px 6px rgba(0,0,0,0.6), 0 5px 8px rgba(0,0,0,0.7);
             border: 1px solid rgba(0,0,0,0.8);
+            -webkit-tap-highlight-color: transparent;
         }
-        .wire::before, .wire::after { content: ''; position: absolute; width: 12px; height: 20px; background: #444; top: -4px; border-radius: 3px; box-shadow: inset 0 2px 3px rgba(255,255,255,0.1), 0 2px 4px rgba(0,0,0,0.8); border: 1px solid #111;}
-        .wire::before { left: -6px; } .wire::after { right: -6px; }
-        .wire.cut { opacity: 0.25; pointer-events: none; box-shadow: none;}
-        .wire.cut::before { content: ''; position: absolute; width: 4px; height: 20px; background: #000; left: 50%; top: -4px; transform: translateX(-50%); box-shadow: none; border: none;}
+        .wire::before, .wire::after { content: ''; position: absolute; width: 14px; height: 32px; background: #444; top: -5px; border-radius: 4px; box-shadow: inset 0 2px 3px rgba(255,255,255,0.1), 0 2px 4px rgba(0,0,0,0.8); border: 1px solid #111;}
+        .wire::before { left: -7px; } .wire::after { right: -7px; }
         
-        /* КОДОВЫЙ ЗАМОК (ИСПРАВЛЕННЫЙ) */
+        .wire.cut { opacity: 0.25; pointer-events: none; box-shadow: none;}
+        .wire.cut::before { content: ''; position: absolute; width: 6px; height: 30px; background: #000; left: 50%; top: -4px; transform: translateX(-50%); box-shadow: none; border: none;}
+        
+        /* --- КОДОВЫЙ ЗАМОК (КРУПНЫЕ КНОПКИ) --- */
         .keypad-display { 
-            width: 85%; height: 36px; background: #050505; color: var(--accent-green); 
-            text-align: right; padding: 4px 15px; font-size: 24px; box-sizing: border-box; 
-            border: 2px solid #222; margin-top: 20px; box-shadow: inset 0 0 10px #000; 
-            text-shadow: 0 0 5px var(--accent-green); letter-spacing: 2px;
+            width: 90%; height: 45px; background: #050505; color: var(--accent-green); 
+            text-align: right; padding: 5px 15px; font-size: 28px; box-sizing: border-box; 
+            border: 2px solid #222; margin-top: 25px; box-shadow: inset 0 0 10px #000; 
+            text-shadow: 0 0 5px var(--accent-green); letter-spacing: 4px;
         }
         .keypad-grid { 
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; 
-            margin-top: 5px; width: 85%;
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; 
+            margin-top: 15px; width: 90%;
         }
         .key-btn { 
             background: linear-gradient(to bottom, #3a3a3a, #222); border: 1px solid #111; color: #ddd; 
-            font-family: inherit; font-size: 16px; padding: 7px 0; cursor: pointer; border-radius: 4px;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 3px 4px rgba(0,0,0,0.6); transition: 0.1s;
+            font-family: inherit; font-size: 22px; padding: 12px 0; cursor: pointer; border-radius: 6px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 4px 6px rgba(0,0,0,0.6); transition: 0.1s;
+            -webkit-tap-highlight-color: transparent;
         }
-        .key-btn:active { background: #111; box-shadow: inset 0 2px 4px rgba(0,0,0,0.8); transform: translateY(2px);}
+        .key-btn:active { background: #111; box-shadow: inset 0 2px 4px rgba(0,0,0,0.8); transform: translateY(3px);}
         
-        .key-clr { background: linear-gradient(to bottom, #b71c1c, #7f0000); color: #fff; font-size: 13px;}
-        .key-ent { background: linear-gradient(to bottom, #388e3c, #1b5e20); color: #fff; font-size: 13px;}
+        .key-clr { background: linear-gradient(to bottom, #b71c1c, #7f0000); color: #fff; font-size: 16px; font-weight: bold;}
+        .key-ent { background: linear-gradient(to bottom, #388e3c, #1b5e20); color: #fff; font-size: 16px; font-weight: bold;}
 
-        /* Индикатор/Кнопка подсказки */
+        /* Индикатор/Кнопка подсказки в углу модуля */
         .status-btn { 
-            width: 26px; height: 26px; border-radius: 50%; background: #1a1a1a; 
-            border: 2px solid #555; position: absolute; top: 6px; right: 10px; 
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.8); color: #888; font-size: 14px; 
+            width: 32px; height: 32px; border-radius: 50%; background: #1a1a1a; 
+            border: 2px solid #555; position: absolute; top: 10px; right: 10px; 
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.8); color: #888; font-size: 16px; 
             font-weight: bold; font-family: inherit; cursor: pointer; display: flex; 
             align-items: center; justify-content: center; padding: 0; outline: none; transition: 0.2s;
+            -webkit-tap-highlight-color: transparent;
         }
-        .status-btn:hover { background: #333; color: #fff; border-color: #999; }
+        .status-btn:active { background: #333; color: #fff; border-color: #999; transform: scale(0.9);}
         .status-btn.solved { 
             background: var(--accent-green); border-color: #aaffaa; 
             box-shadow: 0 0 15px var(--accent-green); color: #000; pointer-events: none;
         }
 
-        /* Manual/Hints Overlay */
+        /* --- ИНСТРУКЦИЯ И ОВЕРЛЕЙ --- */
+        #btn-manual { 
+            position: absolute; bottom: 15px; right: 15px; z-index: 20; 
+            background: rgba(30, 30, 32, 0.95); border: 2px solid #555; font-size: 14px;
+            color: #ddd; padding: 12px 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.8);
+            border-radius: 8px; font-weight: bold; -webkit-tap-highlight-color: transparent;
+        }
+        #btn-manual:active { border-color: var(--accent-red); color: white; transform: scale(0.95);}
+
         #manual-overlay {
-            position: absolute; top: 10%; left: 10%; width: 80%; height: 80%;
-            background: rgba(15, 15, 17, 0.98); border: 1px solid #333;
-            border-radius: 8px; padding: 30px; box-sizing: border-box; display: none;
+            position: absolute; top: 5%; left: 5%; width: 90%; height: 90%;
+            background: rgba(15, 15, 17, 0.98); border: 2px solid #333;
+            border-radius: 12px; padding: 20px; box-sizing: border-box; display: none;
             flex-direction: column; z-index: 50; box-shadow: 0 0 50px rgba(0,0,0,1);
         }
-        .manual-content { flex-grow: 1; overflow-y: auto; font-family: 'Courier New', Courier, monospace; color: #aaa; padding-right: 15px; }
-        .manual-content h3 { color: var(--accent-red); border-bottom: 1px solid #333; padding-bottom: 10px; text-transform: uppercase; font-size: 18px;}
-        .manual-content p { margin-bottom: 15px; line-height: 1.5; }
-        .close-manual { align-self: flex-end; margin-top: 15px; border-color: #555;}
-        
-        #btn-manual { 
-            position: absolute; bottom: 20px; right: 20px; z-index: 20; 
-            background: rgba(30, 30, 32, 0.9); border: 1px solid #555; font-size: 14px;
-            color: #ccc; padding: 10px 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-            display: flex; align-items: center; gap: 10px;
-        }
-        #btn-manual:hover { border-color: var(--accent-red); color: white;}
+        .manual-content { flex-grow: 1; overflow-y: auto; font-family: 'Courier New', Courier, monospace; color: #aaa; padding-right: 10px; font-size: 14px; }
+        .manual-content h3 { color: var(--accent-red); border-bottom: 1px solid #333; padding-bottom: 10px; text-transform: uppercase; font-size: 16px;}
+        .manual-content p { margin-bottom: 15px; line-height: 1.4; }
+        .close-manual { align-self: center; margin-top: 15px; width: 100%; border-color: var(--accent-red);}
 
         /* End Screens */
         .end-screen { background: #050505; z-index: 100;}
-        .end-title { font-size: 60px; text-transform: uppercase; letter-spacing: 5px; text-align: center; }
+        .end-title { font-size: clamp(40px, 8vw, 60px); text-transform: uppercase; letter-spacing: 3px; text-align: center; }
         .win-title { color: var(--accent-green); text-shadow: 0 0 30px var(--accent-green); }
         .lose-title { color: var(--accent-red); text-shadow: 0 0 40px var(--accent-red); animation: shake 0.5s infinite; }
 
-        /* Tension Effects */
+        /* Эффекты */
         .shake-light { animation: shake 0.5s infinite; }
         .shake-heavy { animation: shake 0.2s infinite; }
         .glitch-text { animation: glitch 0.2s infinite; }
         
+        @keyframes blink { 0% {opacity: 1;} 50% {opacity: 0.3;} 100% {opacity: 1;} }
         @keyframes shake {
             0% { transform: translate(1px, 1px) rotate(0deg); }
             10% { transform: translate(-1px, -2px) rotate(-1deg); }
@@ -212,7 +235,6 @@
             90% { transform: translate(1px, 2px) rotate(0deg); }
             100% { transform: translate(1px, -2px) rotate(-1deg); }
         }
-
         @keyframes glitch {
             0% { opacity: 1; transform: skewX(0deg); }
             20% { opacity: 0.8; transform: skewX(-10deg); }
@@ -233,7 +255,7 @@
         </div>
         <h1>Спасатель</h1>
         <button class="btn" onclick="showScreen('settings-screen')">Спасти мир</button>
-        <button class="btn btn-secondary" onclick="alert('Браузерная версия. Обновите страницу.')">Назад</button>
+        <button class="btn btn-secondary" onclick="window.location.href='index.html'">Назад</button>
     </div>
 
     <!-- Settings -->
@@ -249,7 +271,7 @@
         <button class="btn diff-btn" onclick="startGame('hard')" style="color: var(--accent-red); border-color: var(--accent-red);">Хард (2 минуты)</button>
         <div class="diff-desc">Мало времени. Много задач. Высокий риск.</div>
         
-        <button class="btn btn-secondary" style="margin-top: 30px;" onclick="showScreen('main-menu')">Назад</button>
+        <button class="btn btn-secondary" style="margin-top: 10px;" onclick="showScreen('main-menu')">Назад</button>
     </div>
 
     <!-- Game UI -->
@@ -259,11 +281,11 @@
             <!-- Display Module -->
             <div class="module module-display" id="mod-display">
                 <div>
-                    <div style="color:#555; font-size: 11px; margin-bottom: 5px; letter-spacing: 1px;">TIME REMAINING</div>
+                    <div style="color:#666; font-size: 10px; margin-bottom: 2px; letter-spacing: 1px;">TIME REMAINING</div>
                     <div class="timer" id="timer-display">00:00</div>
                 </div>
                 <div>
-                    <div style="color:#555; font-size: 11px; margin-bottom: 5px; text-align: right; letter-spacing: 1px;">SYSTEM ERRORS</div>
+                    <div style="color:#666; font-size: 10px; margin-bottom: 5px; text-align: right; letter-spacing: 1px;">SYSTEM ERRORS</div>
                     <div class="strikes" id="strike-container">
                         <div class="strike-indicator" id="strike-1"></div>
                         <div class="strike-indicator" id="strike-2"></div>
@@ -365,7 +387,7 @@
 
     <!-- Manual Overlay -->
     <div id="manual-overlay">
-        <h2 style="color: white; margin-top:0;">СЕКРЕТНЫЕ ДОКУМЕНТЫ (Манхэттенский проект)</h2>
+        <h2 style="color: white; margin-top:0; font-size: 20px;">СЕКРЕТНЫЕ ДОКУМЕНТЫ</h2>
         <div class="manual-content" id="manual-text">
             <!-- Hints will be injected here -->
         </div>
@@ -375,13 +397,13 @@
     <!-- End Screens -->
     <div id="win-screen" class="screen end-screen">
         <h1 class="end-title win-title">УГРОЗА МИНОВАЛА</h1>
-        <p style="font-size: 20px; margin-bottom: 30px; color: #ccc;">Протокол разминирования выполнен успешно. Мир спасен.</p>
+        <p style="font-size: 18px; margin-bottom: 30px; color: #ccc; text-align: center;">Протокол разминирования выполнен успешно.<br>Мир спасен.</p>
         <button class="btn" onclick="location.reload()">В главное меню</button>
     </div>
 
     <div id="lose-screen" class="screen end-screen">
         <h1 class="end-title lose-title">СИСТЕМА УНИЧТОЖЕНА</h1>
-        <p style="font-size: 20px; margin-bottom: 30px; color: #ccc;">Цепная реакция запущена...</p>
+        <p style="font-size: 18px; margin-bottom: 30px; color: #ccc; text-align: center;">Цепная реакция запущена...</p>
         <button class="btn" onclick="location.reload()">Попробовать снова</button>
     </div>
 
@@ -481,8 +503,9 @@
                     if (gameState.modulesActive.includes(mod)) {
                         el.style.display = 'flex';
                         gameState.modulesSolved[mod] = false;
-                        document.getElementById(`led-${mod === 'screen' ? 'screen-wires' : mod}`).classList.remove('solved');
-                        document.getElementById(`led-${mod === 'screen' ? 'screen-wires' : mod}`).innerText = "?";
+                        const btn = document.getElementById(`led-${mod === 'screen' ? 'screen-wires' : mod}`);
+                        btn.classList.remove('solved');
+                        btn.innerText = "?";
                     } else {
                         el.style.display = 'none';
                         gameState.modulesSolved[mod] = true; 
