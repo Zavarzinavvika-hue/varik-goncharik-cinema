@@ -177,7 +177,8 @@
             <img src="https://sun9-73.userapi.com/s/v1/ig2/TtIRYLEzXJ1SNcF4h-1ubN0QXML7d6PvmMFDMzOU5yCuLQNnGoaMglXka5yCc9S1BstpEKplcJWNb7HYG60yhP6L.jpg?quality=95&as=32x18,48x27,72x40,108x60,160x89,240x134,360x201,480x268,540x301,640x357,720x402,1080x603,1280x714,1376x768&from=bu&u=oY74HXwdRJtvhLJFhTLtqeG0P-9ijkrlNGBJaN7kSc4&cs=1376x0" alt="Логотип">
         </div>
         <button class="btn" onclick="showScreen('team-select')">Начать заезд</button>
-        <button class="btn btn-secondary" onclick="alert('Браузерная версия. Обновите страницу для выхода.')">Выход</button>
+        <!-- ИСПРАВЛЕННАЯ КНОПКА ВЫХОДА -->
+        <button class="btn btn-secondary" onclick="window.location.href='index.html'">Выход</button>
     </div>
 
     <div id="team-select" class="screen">
@@ -481,7 +482,7 @@
                 this.friction = 0.96;
                 this.turnSpeed = 0.08; 
                 
-                this.targetWp = 1; 
+                this.targetWp = 0; 
                 this.hasStarted = false; 
                 this.laps = 0;
                 this.distanceToNext = 0;
@@ -490,8 +491,7 @@
                 this.boost = 0; 
                 this.isBoosting = false;
                 
-                // ИИ держится в центре (макс смещение +/- 50px) чтобы не улететь в траву
-                this.aiBaseOffset = (Math.random() - 0.5) * (TRACK_WIDTH * 0.4); 
+                this.aiBaseOffset = (Math.random() - 0.5) * (TRACK_WIDTH - 120); 
                 this.finishTime = null;
             }
 
@@ -517,12 +517,9 @@
                         if (this.boost <= 0) { this.boost = 0; this.isBoosting = false; }
                     }
                 } else {
-                    // ИСПРАВЛЕННЫЙ ИИ
                     if(state.racePhase === 'racing' && !this.finishTime) {
-                        let steerWpIdx = this.targetWp;
-                        
-                        let target = waypoints[steerWpIdx];
-                        let currentOffset = this.onTrack ? this.aiBaseOffset : 0; // На траве едем строго в центр!
+                        let target = waypoints[this.targetWp];
+                        let currentOffset = this.onTrack ? this.aiBaseOffset : 0; 
                         
                         let tAngle = Math.atan2(target.y - this.y, target.x - this.x);
                         let targetX = target.x + Math.cos(tAngle + Math.PI/2) * currentOffset;
@@ -534,17 +531,15 @@
                         while (aDiff > Math.PI) aDiff -= Math.PI*2;
                         while (aDiff < -Math.PI) aDiff += Math.PI*2;
                         
-                        // ИИ поворачивает всегда
                         this.angle += Math.sign(aDiff) * Math.min(Math.abs(aDiff), this.turnSpeed);
                         
-                        let cornerSlowdown = Math.max(0.3, 1 - Math.abs(aDiff)*1.8); 
+                        let cornerSlowdown = Math.max(0.4, 1 - Math.abs(aDiff)); 
                         this.speed += this.accel * cornerSlowdown;
                     } else {
                         this.speed *= 0.95; 
                     }
                 }
 
-                // Физика
                 this.speed *= this.friction;
                 let currentMax = this.isBoosting ? this.maxSpeed * 1.4 : this.maxSpeed;
                 if (this.speed > currentMax) this.speed = currentMax;
@@ -562,7 +557,6 @@
                 this.x += Math.cos(this.angle) * this.speed;
                 this.y += Math.sin(this.angle) * this.speed;
 
-                // Коллизия 
                 cars.forEach(other => {
                     if (other !== this) {
                         let dx = this.x - other.x;
@@ -578,7 +572,6 @@
                     }
                 });
 
-                // ЖЕЛЕЗОБЕТОННЫЕ ЧЕКПОИНТЫ
                 let targetWpNode = waypoints[this.targetWp];
                 let prev = waypoints[(this.targetWp - 1 + waypoints.length) % waypoints.length];
                 
@@ -590,7 +583,6 @@
                 let dot = trackVx * carVx + trackVy * carVy;
                 this.distanceToNext = Math.hypot(targetWpNode.x - this.x, targetWpNode.y - this.y);
                 
-                // Пересекаем точку если перешли линию ИЛИ достаточно близко
                 if (dot <= 0 || this.distanceToNext < TRACK_WIDTH * 0.8) {
                     if (this.targetWp === 0) { 
                         if (!this.hasStarted) {
@@ -691,7 +683,6 @@
             window.addEventListener('resize', resizeCanvas);
             checkOrientation();
 
-            // ТАЙМЕР ОТСЧЕТА
             let count = 10;
             let overlay = document.getElementById('countdown-overlay');
             let text = document.getElementById('countdown-text');
@@ -736,7 +727,7 @@
                 car.finishTime = Date.now() - state.timeParams.start;
                 if (car.isPlayer) {
                     state.racePhase = 'finished';
-                    checkOrientation(); // Скрываем мобильные кнопки
+                    checkOrientation(); 
                     setTimeout(showResults, 1500); 
                 }
             }
@@ -839,7 +830,6 @@
             showScreen('main-menu');
         }
 
-        // --- МОБИЛЬНОЕ СЕНСОРНОЕ УПРАВЛЕНИЕ ---
         const bindTouch = (id, key) => {
             const btn = document.getElementById(id);
             if(!btn) return;
@@ -913,8 +903,8 @@
                 state.timeParams.current = Date.now() - state.timeParams.start;
                 document.getElementById('ui-time').innerText = formatTime(state.timeParams.current);
                 cars.forEach(c => c.update());
-            } else if (state.racePhase === 'finished') {
-                cars.forEach(c => c.update()); // Докат после финиша
+            } else if (state.racePhase === 'finished' || state.racePhase === 'countdown') {
+                cars.forEach(c => c.update()); 
             }
 
             ctx.fillStyle = "#20914c"; 
