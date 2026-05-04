@@ -90,7 +90,7 @@
         }
         .img-container img {
             width: 100%; height: 100%;
-            object-fit: contain; /* Изображения не обрезаются */
+            object-fit: contain; 
             border-radius: 8px;
         }
 
@@ -132,7 +132,8 @@
 
         .cart-header { padding: 15px 20px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; background: #111;}
         .cart-header h2 { margin: 0; color: var(--accent-gold); font-size: 20px;}
-        .close-cart { background: none; border: none; color: #aaa; font-size: 24px; cursor: pointer; }
+        .close-btn { background: none; border: none; color: #aaa; font-size: 24px; cursor: pointer; transition: 0.2s;}
+        .close-btn:hover { color: white; }
 
         .cart-items { padding: 20px; overflow-y: auto; flex-grow: 1; max-height: 30vh; border-bottom: 1px solid #333;}
         .cart-item { display: flex; justify-content: space-between; align-items: center; background: var(--input-bg); padding: 10px 15px; border-radius: 8px; margin-bottom: 10px;}
@@ -163,6 +164,49 @@
         .submit-btn:active { transform: scale(0.98); background: var(--accent-gold-hover); }
         .submit-btn:disabled { background: #555; color: #888; cursor: not-allowed; }
 
+        /* Оверлей Чека (БИЛЕТА) */
+        #receipt-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); backdrop-filter: blur(8px);
+            z-index: 150; display: none; justify-content: center; align-items: center;
+        }
+
+        .receipt-content {
+            background: #111; width: 90%; max-width: 400px;
+            border: 2px dashed var(--accent-gold); border-radius: 12px;
+            padding: 25px; box-sizing: border-box;
+            box-shadow: 0 10px 50px rgba(255, 204, 0, 0.15);
+            animation: popIn 0.4s ease;
+        }
+        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        .receipt-header { text-align: center; border-bottom: 2px dashed #444; padding-bottom: 15px; margin-bottom: 15px; }
+        .receipt-header h2 { margin: 0 0 5px 0; color: var(--accent-gold); font-size: 22px; text-transform: uppercase; letter-spacing: 2px;}
+        .receipt-header p { margin: 0; font-size: 14px; color: #888; }
+        
+        .receipt-body { margin-bottom: 15px; }
+        .receipt-body-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px;}
+        .receipt-body-row span:first-child { color: #888; }
+        .receipt-body-row span:last-child { color: #fff; font-weight: bold; text-align: right; }
+
+        .receipt-items-list { border-top: 1px solid #333; border-bottom: 1px solid #333; padding: 15px 0; margin-bottom: 15px; max-height: 200px; overflow-y: auto;}
+        .receipt-item-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px; line-height: 1.4;}
+        .receipt-item-row span:first-child { flex-grow: 1; padding-right: 10px; color: #ddd; }
+        .receipt-item-row span:last-child { white-space: nowrap; color: var(--accent-gold); font-weight: bold; }
+
+        .receipt-total { display: flex; justify-content: space-between; font-size: 20px; font-weight: bold; color: white;}
+        
+        .receipt-footer { margin-top: 20px; font-size: 12px; color: #aaa; text-align: center; line-height: 1.5; border-top: 2px dashed #444; padding-top: 15px;}
+        .receipt-footer span { color: var(--accent-red); font-weight: bold; }
+
+        .btn-receipt-close {
+            width: 100%; background: transparent; color: var(--accent-gold);
+            border: 1px solid var(--accent-gold); padding: 12px; border-radius: 8px; 
+            font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px; 
+            transition: 0.2s; text-transform: uppercase;
+        }
+        .btn-receipt-close:active { background: var(--accent-gold); color: #000; transform: scale(0.95);}
+
     </style>
 </head>
 <body>
@@ -184,7 +228,7 @@
         <div class="cart-content">
             <div class="cart-header">
                 <h2>Оформление заказа</h2>
-                <button class="close-cart" onclick="closeCart()">×</button>
+                <button class="close-btn" onclick="closeCart()">×</button>
             </div>
             
             <div class="cart-items" id="cart-items">
@@ -217,6 +261,47 @@
         </div>
     </div>
 
+    <!-- Модальное окно чека (Билет) -->
+    <div id="receipt-modal">
+        <div class="receipt-content">
+            <div class="receipt-header">
+                <h2>ЧЕК ЗАКАЗА</h2>
+                <p>Лавка «Гончарика»</p>
+            </div>
+            
+            <div class="receipt-body">
+                <div class="receipt-body-row">
+                    <span>Заказ №:</span>
+                    <span id="receipt-number">000000</span>
+                </div>
+                <div class="receipt-body-row">
+                    <span>Получатель:</span>
+                    <span id="receipt-name">Имя</span>
+                </div>
+                <div class="receipt-body-row">
+                    <span>Город выдачи:</span>
+                    <span id="receipt-city">Город</span>
+                </div>
+            </div>
+
+            <div class="receipt-items-list" id="receipt-items-list">
+                <!-- Список сгенерируется через JS -->
+            </div>
+
+            <div class="receipt-total">
+                <span>ИТОГО:</span>
+                <span id="receipt-total-sum">0 ₽</span>
+            </div>
+
+            <div class="receipt-footer">
+                Сохраните или сделайте скриншот чека.<br>
+                Оплата производится <span>НА КАССЕ</span> при получении в кинотеатре.
+            </div>
+
+            <button class="btn-receipt-close" onclick="closeReceipt()">Отлично!</button>
+        </div>
+    </div>
+
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
@@ -226,7 +311,7 @@
             {
                 id: 1, type: "tumbler",
                 name: "Металлический стакан-тамблер",
-                desc: "Стильный аксессуар в матовом исполнении, который долго сохраняет температуру напитка. Это экологичная альтернатива пластику, удобная как для кинозала, так и для повседневного использования.",
+                desc: "Стильный аксессуар в матовом исполнении, который долго сохраняет температуру напитка. Это экологичная альтернатива пластику.",
                 img: "https://sun9-32.userapi.com/s/v1/ig2/PKj-Wu-lSWAR3-aER3LKFK1KqbBTfEgWNxg0Osdw5rvHCrq-gqIbGQmQaUJhFf_785OJjSs8lJjUGUmRF817QFnN.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1024x1024&from=bu&u=EICQJan_PUAHpr5vhMzbStGtdxOhU15zqpo9moLf0Dc&cs=1024x0",
                 options: [
                     { label: "200 мл", price: 200 },
@@ -238,43 +323,43 @@
             {
                 id: 2, type: "standard", price: 350,
                 name: "Вместительный шоппер",
-                desc: "Надежная сумка из плотного канваса с внутренними карманами, которая подойдет и для походов за покупками, и для ношения учебных принадлежностей или ноутбука.",
+                desc: "Надежная сумка из плотного канваса с внутренними карманами, которая подойдет и для походов за покупками.",
                 img: "https://sun9-50.userapi.com/s/v1/ig2/E4vV44Xvur560D_t0cTYzCtZPRNBl_Oboc8ck6VPsfBCHvmYH-CHJblqUnoIO0UrNimUzA4SDQ-PDNf6XfRExher.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1024x1024&from=bu&u=w9RDHSudYoWyBDXOyDmi_I5CYIryBYJSaS6p2OAKqNE&cs=1024x0"
             },
             {
                 id: 3, type: "standard", price: 150,
                 name: "Блокнот для рецензий",
-                desc: "Качественный ежедневник в твердом переплете, где предусмотрены поля для оценки фильмов, записи мыслей после просмотра и творческих заметок.",
+                desc: "Качественный ежедневник в твердом переплете, где предусмотрены поля для оценки фильмов.",
                 img: "https://sun9-43.userapi.com/s/v1/ig2/-ov3gcRN8fzSXFEpZeYKIgguD-Gj-AU0eVMbknb15dp7_XYcyq7rVEGYUnbwujex7R1qjDCwD7t__6jZcn7wV3oy.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1024x1024&from=bu&u=s9Iqf3c9892BzuYTNmS5Ke2opw7FAcx-IAft6lxZ33E&cs=1024x0"
             },
             {
                 id: 4, type: "standard", price: 200,
                 name: "Складной плед в чехле",
-                desc: "Уютный компактный аксессуар, который можно взять с собой на вечерний сеанс или использовать дома. В сложенном виде занимает минимум места.",
+                desc: "Уютный компактный аксессуар, который можно взять с собой на вечерний сеанс или использовать дома.",
                 img: "https://sun9-40.userapi.com/s/v1/ig2/_N-suHd8E8QIXf7f-bA2N1cGn29i5JLlw7XH0N9Hocpfb_v-8UN4C08nMQQLbfMc3nTV4Zl2caWHNYFqH-SVVE4l.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1024x1024&from=bu&u=jTMyPcQSETjV2_m-lfjx3fPk_Jd-b0xqktdF8cl_qMU&cs=1024x0"
             },
             {
                 id: 5, type: "clothing", price: 1000,
                 name: "Худи-оверсайз с принтом",
-                desc: "Качественная толстовка из плотного хлопка с минималистичной вышивкой или графикой, вдохновленной жанрами кино.",
+                desc: "Качественная толстовка из плотного хлопка с минималистичной вышивкой или графикой.",
                 img: "https://sun9-36.userapi.com/s/v1/ig2/HvvDlH0KIHM1mM-D4M4o5_QNsOLByAxl8tGNCPjYD1yfJTerGmwTdRshw7YmBcDZbqBx3tpz2bM1Jt8WICmTlzej.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1024x1024&from=bu&u=KjrJE1vujmi4fp7A-peCFnR92JHnvql97wC6q8WMdJY&cs=1024x0"
             },
             {
                 id: 6, type: "clothing", price: 1000,
                 name: "Джоггеры «Киномарафон»",
-                desc: "Плотные спортивные штаны (премиальный футер). Главная фишка — очень глубокие карманы на молнии, чтобы телефон не выскользнул в щель сиденья.",
+                desc: "Плотные спортивные штаны. Главная фишка — очень глубокие карманы на молнии.",
                 img: "https://sun9-63.userapi.com/s/v1/ig2/uyOtqBZrRLlNNc_8K6Z9E4bn5uonKTAmuGg0bvqHhjZAFUSA9BseQmCgvhrU2kvEiGlPArR_SPtIo3plmeLs4cAN.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1024x1024&from=bu&u=peM5u4Gseu6eudFoljFxL8d9zCUVdl9FB-3bHbBAjv8&cs=1024x0"
             },
             {
                 id: 7, type: "clothing", price: 1000,
                 name: "Спортивные свит-шорты",
-                desc: "Летний аналог джоггеров свободного кроя. Отлично смотрятся в комплекте с оверсайз-худи. Вышитая кинохлопушка у нижнего края.",
+                desc: "Летний аналог джоггеров свободного кроя. Отлично смотрятся в комплекте с оверсайз-худи.",
                 img: "https://sun9-1.userapi.com/s/v1/ig2/4LAP6bizrwUO8V9KS0KRSXQ5-8k3Fc_P4QRrj0_56yAXMBGLXV6CKk8AKpw_6hSSw9JflUdE-LCxcextHPNNY5ue.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1024x1024&from=bu&u=GX1btk-D8T6vUFB_Phfyu3HQ1gZgwdP-iW8NFH77zrE&cs=1024x0"
             },
             {
                 id: 8, type: "clothing", price: 1000,
                 name: "Стритстайл футболка Back-print",
-                desc: "Спереди — аккуратный мини-логотип киносети. На спине — крупный детализированный арт с неоновой вывеской кинотеатра или ретро-камерой.",
+                desc: "На спине — крупный детализированный арт с неоновой вывеской кинотеатра или ретро-камерой.",
                 img: "https://sun9-66.userapi.com/s/v1/ig2/P2SGtyaULdSHCMPwoaLLDA7X4N79SP5NCP_370VMw3ntadMPt9LBYjSBTYVM2953cHa8zk8-gbsvu5ArXHZAcTQF.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1024x1024&from=bu&u=oRnGV7iMtzIY8gnPR9MN1lfgTDFSNFD2-caL3_L8Od4&cs=1024x0"
             }
         ];
@@ -424,25 +509,51 @@
             renderCartItems();
         };
 
-        // Оформление заказа
+        // Оформление заказа и вывод Чека
         window.submitOrder = function(e) {
             e.preventDefault();
             if (cart.length === 0) return;
 
             const name = document.getElementById('order-name').value;
-            const phone = document.getElementById('order-phone').value;
             const city = document.getElementById('order-city').value;
 
-            // Здесь обычно идет отправка данных на бэкенд через tg.sendData()
-            // Но для визуала мы покажем красивый Alert и очистим корзину
-            
-            tg.showAlert(`✅ Заказ успешно оформлен!\n\n${name},\nЖдем вас в кинотеатре г. ${city}.\nОплата заказа (${document.getElementById('cart-total').innerText} ₽) производится на кассе.`);
-            
-            // Сброс
+            // Генерация номера заказа (6 цифр)
+            const orderNumber = Math.floor(100000 + Math.random() * 900000);
+
+            // Заполнение данных в чеке
+            document.getElementById('receipt-number').innerText = `#${orderNumber}`;
+            document.getElementById('receipt-name').innerText = name;
+            document.getElementById('receipt-city').innerText = city;
+
+            // Заполнение товаров в чеке
+            const receiptList = document.getElementById('receipt-items-list');
+            receiptList.innerHTML = '';
+            let total = 0;
+
+            cart.forEach(item => {
+                total += item.price;
+                receiptList.innerHTML += `
+                    <div class="receipt-item-row">
+                        <span>${item.name} <br><small style="color:#777;">${item.desc}</small></span>
+                        <span>${item.price} ₽</span>
+                    </div>
+                `;
+            });
+
+            document.getElementById('receipt-total-sum').innerText = `${total} ₽`;
+
+            // Закрываем корзину, открываем чек
+            closeCart();
+            document.getElementById('receipt-modal').style.display = 'flex';
+        };
+
+        // Закрытие чека и очистка данных
+        window.closeReceipt = function() {
+            document.getElementById('receipt-modal').style.display = 'none';
             cart = [];
             updateCartBadge();
             document.getElementById('order-form').reset();
-            closeCart();
+            window.scrollTo(0, 0); // Возврат наверх страницы
         };
 
         window.onload = renderShop;
