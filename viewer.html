@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Знаток фильмов: Зритель</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f0f12;
+            --card-bg: rgba(26, 26, 32, 0.95);
+            --accent-blue: #4facfe;
+            --accent-green: #388e3c;
+            --accent-red: #e50914;
+            --text-main: #ffffff;
+            --text-secondary: #aaaaaa;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at top, #1a2a3a 0%, var(--bg-color) 100%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        /* Верхняя панель: Прогресс и Попытки */
+        .top-bar {
+            width: 100%; max-width: 600px;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px 25px; box-sizing: border-box;
+        }
+
+        .btn-exit {
+            background: transparent; color: var(--text-secondary);
+            border: 1px solid #444; border-radius: 8px;
+            padding: 8px 15px; font-size: 14px; cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-exit:active { background: #333; color: white; transform: scale(0.95); }
+
+        .attempts { display: flex; gap: 5px; font-size: 20px; }
+        .heart { color: var(--accent-red); transition: 0.3s; }
+        .heart.lost { color: #333; transform: scale(0.8); }
+
+        /* Прогресс бар */
+        .progress-container {
+            width: 100%; max-width: 600px; padding: 0 25px; box-sizing: border-box;
+            margin-bottom: 20px;
+        }
+        .progress-text { font-size: 14px; color: var(--accent-blue); margin-bottom: 5px; font-weight: bold;}
+        .progress-bar { width: 100%; height: 6px; background: #222; border-radius: 3px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--accent-blue); width: 0%; transition: width 0.4s ease; }
+
+        /* Контейнер вопроса */
+        .quiz-container {
+            width: 90%; max-width: 600px; flex-grow: 1;
+            display: flex; flex-direction: column;
+        }
+
+        .question-card {
+            background: var(--card-bg); border: 1px solid rgba(79, 172, 254, 0.3);
+            border-radius: 15px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            margin-bottom: 20px; animation: fadeIn 0.4s ease;
+        }
+
+        .movie-title { font-size: 12px; color: var(--accent-blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        .question-text { font-size: 18px; line-height: 1.4; margin: 0; font-weight: 500; }
+
+        /* Варианты ответов */
+        .options-grid { display: flex; flex-direction: column; gap: 12px; padding-bottom: 40px;}
+        
+        .option-btn {
+            background: #1e1e24; border: 2px solid #2a2a32;
+            color: var(--text-main); padding: 15px 20px;
+            border-radius: 10px; font-size: 16px; text-align: left;
+            cursor: pointer; transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+            display: flex; align-items: center;
+        }
+
+        .option-btn:hover:not(:disabled) { border-color: var(--accent-blue); background: #232b36; }
+        .option-btn:active:not(:disabled) { transform: scale(0.98); }
+
+        .option-btn.correct { background: var(--accent-green); border-color: #4caf50; color: #fff; box-shadow: 0 0 15px rgba(76, 175, 80, 0.4); }
+        .option-btn.wrong { background: var(--accent-red); border-color: #ff5252; color: #fff; animation: shake 0.4s; }
+        .option-btn:disabled { cursor: not-allowed; opacity: 0.7; }
+
+        /* Итоговый экран */
+        #result-screen { display: none; text-align: center; padding-top: 10vh; animation: fadeIn 0.5s ease; width: 90%; max-width: 600px;}
+        .result-title { font-size: 32px; color: var(--accent-blue); margin-bottom: 10px; }
+        .result-score { font-size: 60px; font-weight: bold; margin: 20px 0; text-shadow: 0 0 20px rgba(79,172,254,0.5); }
+        .result-desc { font-size: 16px; color: var(--text-secondary); margin-bottom: 40px; line-height: 1.5; }
+        .btn-primary { background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%); color: #000; border: none; padding: 15px 40px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; width: 100%; box-shadow: 0 5px 15px rgba(79,172,254,0.4);}
+        .btn-primary:active { transform: scale(0.95); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- ЭКРАН ИГРЫ -->
+    <div id="quiz-screen" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+        
+        <div class="top-bar">
+            <button class="btn-exit" onclick="window.location.href='index.html'">Выйти</button>
+            <div class="attempts" id="attempts-display">
+                <span class="heart" id="heart-1">❤</span>
+                <span class="heart" id="heart-2">❤</span>
+            </div>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-text" id="progress-text">Вопрос 1 из 11</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+        </div>
+
+        <div class="quiz-container">
+            <div class="question-card" id="question-card">
+                <div class="movie-title" id="movie-title">Название фильма</div>
+                <p class="question-text" id="question-text">Текст вопроса</p>
+            </div>
+            <div class="options-grid" id="options-grid">
+                <!-- Кнопки генерируются через JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ЭКРАН РЕЗУЛЬТАТОВ -->
+    <div id="result-screen">
+        <h1 class="result-title">Тест завершен!</h1>
+        <div class="result-score" id="result-score">8/11</div>
+        <p class="result-desc" id="result-desc">Отличный результат! Ты явно любишь кино и внимательно следишь за сюжетом.</p>
+        <button class="btn-primary" onclick="window.location.href='index.html'">Вернуться в меню</button>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // БАЗА ВОПРОСОВ
+        const questions = [
+            {
+                movie: "Мстители: Финал (Avengers: Endgame)",
+                text: "Кто пожертвовал собой на планете Вормир, чтобы получить Камень Души?",
+                options: ["A) Клинт Бартон (Соколиный Глаз)", "B) Наташа Романофф (Черная Вдова)", "C) Тони Старк (Железный Человек)", "D) Стив Роджерс (Капитан Америка)"],
+                correctAnswer: 1 // Индекс правильного ответа (B)
+            },
+            {
+                movie: "Легенда (2015)",
+                text: "Какую роль исполнил Том Харди в этом фильме?",
+                options: ["A) Только Рональда Крэя", "B) Только Реджинальда Крэя", "C) Братьев-близнецов Рональда и Реджинальда", "D) Детектива, расследующего дело Крэев"],
+                correctAnswer: 2 // C
+            },
+            {
+                movie: "Дюна: Часть 1 (Dune: Part One)",
+                text: "Как называется самый ценный ресурс во вселенной, добываемый на пустынной планете Арракис?",
+                options: ["A) Вибраниум", "B) Спайс (Пряность / Меланж)", "C) Анобтаниум", "D) Мифрил"],
+                correctAnswer: 1 // B
+            },
+            {
+                movie: "Хоббит (The Hobbit)",
+                text: "Как звали огнедышащего дракона, который захватил Одинокую гору (Эребор) и ее сокровища?",
+                options: ["A) Балерион", "B) Дрогон", "C) Смауг", "D) Фафнир"],
+                correctAnswer: 2 // C
+            },
+            {
+                movie: "Властелин колец (The Lord of the Rings)",
+                text: "Сколько Колец Власти было изначально выковано и подарено королям людей?",
+                options: ["A) 3", "B) 7", "C) 9", "D) 1"],
+                correctAnswer: 2 // C
+            },
+            {
+                movie: "Аватар: Часть 1 (Avatar)",
+                text: "Как называется спутник, на котором происходят события фильма и живут на'ви?",
+                options: ["A) Татуин", "B) Пандора", "C) Кибертрон", "D) Криптон"],
+                correctAnswer: 1 // B
+            },
+            {
+                movie: "Гарри Поттер и узник Азкабана",
+                text: "Кто оказался крестным отцом Гарри Поттера?",
+                options: ["A) Римус Люпин", "B) Северус Снейп", "C) Сириус Блэк", "D) Питер Петтигрю"],
+                correctAnswer: 2 // C
+            },
+            {
+                movie: "Фантастические твари: Преступления Грин-де-Вальда",
+                text: "В каком европейском городе разворачиваются основные события второго фильма?",
+                options: ["A) Лондон", "B) Париж", "C) Берлин", "D) Рим"],
+                correctAnswer: 1 // B
+            },
+            {
+                movie: "Начало (Inception)",
+                text: "Какой предмет (тотем) использовал главный герой Кобб, чтобы проверить, находится ли он в реальности или во сне?",
+                options: ["A) Игральная кость", "B) Шахматная фигура", "C) Старинная монета", "D) Волчок"],
+                correctAnswer: 3 // D
+            },
+            {
+                movie: "Интерстеллар (Interstellar)",
+                text: "Как называется сверхмассивная черная дыра, вокруг которой вращаются планеты в другой галактике?",
+                options: ["A) Гаргантюа", "B) Левиафан", "C) Бегемот", "D) Сингулярность"],
+                correctAnswer: 0 // A
+            },
+            {
+                movie: "Темный рыцарь (The Dark Knight)",
+                text: "Кто из актеров посмертно получил премию «Оскар» за гениальное исполнение роли Джокера в этом фильме?",
+                options: ["A) Джек Николсон", "B) Хит Леджер", "C) Хоакин Феникс", "D) Джаред Лето"],
+                correctAnswer: 1 // B
+            }
+        ];
+
+        // СОСТОЯНИЕ ИГРЫ
+        let currentQuestionIndex = 0;
+        let attemptsLeft = 2;
+        let score = 0;
+        let isProcessing = false; // Блокировка мульти-кликов
+
+        // ЭЛЕМЕНТЫ DOM
+        const quizScreen = document.getElementById('quiz-screen');
+        const resultScreen = document.getElementById('result-screen');
+        const movieTitleEl = document.getElementById('movie-title');
+        const questionTextEl = document.getElementById('question-text');
+        const optionsGridEl = document.getElementById('options-grid');
+        const progressTextEl = document.getElementById('progress-text');
+        const progressFillEl = document.getElementById('progress-fill');
+        const heart1 = document.getElementById('heart-1');
+        const heart2 = document.getElementById('heart-2');
+
+        // ИНИЦИАЛИЗАЦИЯ
+        function startQuiz() {
+            currentQuestionIndex = 0;
+            score = 0;
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            isProcessing = false;
+            attemptsLeft = 2;
+            updateHeartsUI();
+
+            const currentQ = questions[currentQuestionIndex];
+            
+            // Обновление прогресса
+            progressTextEl.innerText = `Вопрос ${currentQuestionIndex + 1} из ${questions.length}`;
+            progressFillEl.style.width = `${((currentQuestionIndex) / questions.length) * 100}%`;
+
+            // Текст вопроса
+            movieTitleEl.innerText = currentQ.movie;
+            questionTextEl.innerText = currentQ.text;
+
+            // Генерация кнопок
+            optionsGridEl.innerHTML = '';
+            currentQ.options.forEach((optionText, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = optionText;
+                btn.onclick = () => handleAnswer(index, btn);
+                optionsGridEl.appendChild(btn);
+            });
+
+            // Анимация появления
+            document.getElementById('question-card').style.animation = 'none';
+            document.getElementById('question-card').offsetHeight; // Рефлоу
+            document.getElementById('question-card').style.animation = 'fadeIn 0.4s ease';
+        }
+
+        function updateHeartsUI() {
+            if (attemptsLeft === 2) {
+                heart1.classList.remove('lost');
+                heart2.classList.remove('lost');
+            } else if (attemptsLeft === 1) {
+                heart2.classList.add('lost');
+            } else {
+                heart1.classList.add('lost');
+                heart2.classList.add('lost');
+            }
+        }
+
+        function handleAnswer(selectedIndex, btnElement) {
+            if (isProcessing) return;
+
+            const currentQ = questions[currentQuestionIndex];
+            
+            if (selectedIndex === currentQ.correctAnswer) {
+                // ПРАВИЛЬНЫЙ ОТВЕТ
+                isProcessing = true;
+                btnElement.classList.add('correct');
+                score++;
+                setTimeout(nextQuestion, 1000);
+            } else {
+                // НЕПРАВИЛЬНЫЙ ОТВЕТ
+                attemptsLeft--;
+                updateHeartsUI();
+                btnElement.classList.add('wrong');
+                btnElement.disabled = true;
+
+                if (attemptsLeft <= 0) {
+                    // ПОПЫТКИ ЗАКОНЧИЛИСЬ
+                    isProcessing = true;
+                    // Подсвечиваем правильный ответ
+                    const allBtns = optionsGridEl.querySelectorAll('.option-btn');
+                    allBtns[currentQ.correctAnswer].classList.add('correct');
+                    
+                    // Блокируем остальные
+                    allBtns.forEach(b => b.disabled = true);
+                    
+                    setTimeout(nextQuestion, 1500);
+                }
+            }
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            
+            if (currentQuestionIndex < questions.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            quizScreen.style.display = 'none';
+            resultScreen.style.display = 'block';
+            
+            document.getElementById('result-score').innerText = `${score}/${questions.length}`;
+            
+            const descEl = document.getElementById('result-desc');
+            if (score === questions.length) {
+                descEl.innerText = "Идеально! Ты настоящий фанат кино. Ждем тебя на уровне «Сценарист»!";
+            } else if (score >= 7) {
+                descEl.innerText = "Отличный результат! Ты явно любишь кино и внимательно следишь за сюжетом.";
+            } else if (score >= 4) {
+                descEl.innerText = "Неплохо! Попкорн ты есть любишь, но некоторые детали ускользнули от твоего взгляда.";
+            } else {
+                descEl.innerText = "Кажется, во время сеансов ты чаще смотришь в телефон. Пора пересмотреть классику!";
+            }
+        }
+
+        // Запуск при загрузке страницы
+        window.onload = startQuiz;
+
+    </script>
+</body>
+</html>
