@@ -30,6 +30,18 @@
 
         .active-screen { display: flex !important; }
 
+        /* ЭКРАН БЛОКИРОВКИ ВЕРТИКАЛЬНОГО РЕЖИМА */
+        #rotate-screen {
+            background-color: var(--bg-color); z-index: 9999;
+            text-align: center; padding: 20px; color: var(--main-color);
+        }
+        .rotate-icon { font-size: 60px; margin-bottom: 20px; animation: rotateAnim 1.5s infinite; }
+        @keyframes rotateAnim {
+            0% { transform: rotate(0deg); }
+            50% { transform: rotate(-90deg); }
+            100% { transform: rotate(-90deg); }
+        }
+
         /* Кнопки */
         .btn {
             background: linear-gradient(90deg, #d4af37, #b8860b); color: #000;
@@ -39,7 +51,6 @@
             -webkit-tap-highlight-color: transparent;
         }
         .btn:active { transform: scale(0.95); }
-        .btn:disabled { background: #555; color: #888; box-shadow: none; cursor: not-allowed; }
         .btn-secondary { background: transparent; color: var(--main-color); border: 2px solid var(--main-color); box-shadow: none; }
         
         .btn-back {
@@ -49,7 +60,7 @@
             padding: 8px 15px; font-size: 14px; cursor: pointer; z-index: 50;
         }
 
-        h2 { color: var(--main-color); text-transform: uppercase; text-shadow: 0 2px 4px rgba(0,0,0,0.8); font-size: 28px; margin-bottom: 20px; text-align: center;}
+        h2 { color: var(--main-color); text-transform: uppercase; text-shadow: 0 2px 4px rgba(0,0,0,0.8); font-size: 30px; margin-bottom: 20px; text-align: center;}
         p.subtitle { font-size: 18px; text-align: center; max-width: 600px; margin-bottom: 30px; line-height: 1.4; color: #ccc;}
 
         /* Заставка */
@@ -59,12 +70,12 @@
         /* Игровой интерфейс */
         .roulette-container {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            width: 100%; max-width: 800px; padding: 15px; box-sizing: border-box;
+            width: 100%; max-width: 800px;
         }
 
         .bet-section {
             background: rgba(0,0,0,0.6); padding: 15px 30px; border-radius: 10px; border: 1px solid #444;
-            display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 20px;
+            display: flex; align-items: center; gap: 15px; margin-bottom: 20px;
         }
         .bet-label { font-size: 18px; font-weight: bold; color: var(--main-color);}
         .bet-input {
@@ -74,7 +85,7 @@
 
         /* Колесо рулетки */
         .wheel-box {
-            position: relative; width: 250px; height: 250px; margin-bottom: 25px;
+            position: relative; width: 250px; height: 250px; margin-bottom: 20px;
         }
         .wheel {
             width: 100%; height: 100%; border-radius: 50%;
@@ -102,46 +113,40 @@
 
         /* Результат */
         #result-display {
-            display: none; background: rgba(0,0,0,0.9); border: 2px solid var(--main-color);
+            display: none; background: rgba(0,0,0,0.8); border: 2px solid var(--main-color);
             padding: 20px; border-radius: 10px; text-align: center; max-width: 600px; width: 90%;
-            animation: fadeIn 0.5s ease; position: absolute; z-index: 100;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.9);
+            animation: fadeIn 0.5s ease;
         }
-        #res-number { font-size: 45px; font-weight: bold; margin-bottom: 10px; }
+        #res-number { font-size: 40px; font-weight: bold; margin-bottom: 10px; }
         .color-red { color: #ff3333; text-shadow: 0 0 10px #ff3333;}
         .color-black { color: #888; text-shadow: 0 0 10px #fff;}
         .color-green { color: #33ff33; text-shadow: 0 0 10px #33ff33;}
         
-        #res-title { font-size: 22px; font-weight: bold; color: var(--main-color); margin-bottom: 10px;}
-        #res-desc { font-size: 15px; color: #ddd; line-height: 1.4; margin-bottom: 20px;}
-        #res-jackpot { display: none; color: #ffcc00; font-size: 18px; font-weight: bold; margin-bottom: 15px; text-shadow: 0 0 15px #ffcc00; animation: blink 1s infinite; padding: 10px; border: 2px dashed #ffcc00; border-radius: 8px;}
+        #res-title { font-size: 24px; font-weight: bold; color: var(--main-color); margin-bottom: 10px;}
+        #res-desc { font-size: 16px; color: #ddd; line-height: 1.4; margin-bottom: 20px;}
+        #res-jackpot { display: none; color: #ffcc00; font-size: 20px; font-weight: bold; margin-bottom: 15px; text-shadow: 0 0 15px #ffcc00; animation: blink 1s infinite;}
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-
-        /* Адаптация под вертикальные телефоны */
-        @media screen and (max-width: 500px) {
-            h2 { font-size: 24px; }
-            .bet-section { flex-direction: column; padding: 15px; gap: 10px; }
-            .wheel-box { width: 220px; height: 220px; }
-            .wheel-center { width: 50px; height: 50px; }
-            .wheel-center span { font-size: 20px; }
-            .pointer { border-top: 25px solid var(--text-color); border-left: 12px solid transparent; border-right: 12px solid transparent; top: -10px;}
-            .btn { min-width: 200px; font-size: 16px; padding: 15px 20px; width: 100%;}
-        }
 
     </style>
 </head>
 <body>
 
+    <div id="rotate-screen" class="screen" style="display: none;">
+        <div class="rotate-icon">🔄</div>
+        <h2>Пожалуйста, поверните телефон горизонтально</h2>
+        <p style="color: white;">Для игры требуется широкий экран.</p>
+    </div>
+
     <!-- Заставка 1 -->
     <div id="intro-1" class="screen active-screen">
-        <h2 style="padding: 0 20px;">Если вы зашли сюда, то вам скучно...</h2>
+        <h2>Если вы зашли сюда, то вам скучно...</h2>
     </div>
 
     <!-- Заставка 2 -->
     <div id="intro-2" class="screen">
-        <h2 style="padding: 0 20px;">Мы постараемся подобрать для вас кино и условия просмотра</h2>
+        <h2>Мы постараемся подобрать для вас кино и условия просмотра</h2>
     </div>
 
     <!-- Игра -->
@@ -170,7 +175,7 @@
             <div id="res-title">Название</div>
             <div id="res-desc">Описание с кем смотреть</div>
             <div id="res-jackpot">🎉 ДЖЕКПОТ! СОВПАДЕНИЕ ЧИСЛА! СКИДКА 100% ВО ВСЕМ КИНОТЕАТРЕ! 🎉</div>
-            <button class="btn" onclick="resetGame()" style="width: 100%; box-sizing: border-box;">Крутить еще раз</button>
+            <button class="btn" onclick="resetGame()">Крутить еще раз</button>
         </div>
     </div>
 
@@ -241,6 +246,18 @@
         let isSpinning = false;
         let currentRotation = 0;
 
+        function checkOrientation() {
+            let rotScreen = document.getElementById('rotate-screen');
+            if (window.innerHeight > window.innerWidth) {
+                rotScreen.style.display = 'flex';
+            } else {
+                rotScreen.style.display = 'none';
+            }
+        }
+
+        window.addEventListener('resize', checkOrientation);
+        checkOrientation();
+
         // Секвенция заставок
         setTimeout(() => {
             document.getElementById('intro-1').classList.remove('active-screen');
@@ -265,6 +282,7 @@
             isSpinning = true;
             document.getElementById('btn-spin').disabled = true;
             document.getElementById('result-display').style.display = 'none';
+            document.getElementById('play-area').style.display = 'flex';
 
             // Генерируем результат (от 0 до 36)
             const resultNum = Math.floor(Math.random() * 37);
@@ -292,6 +310,8 @@
         }
 
         function showResult(bet, resultNum) {
+            document.getElementById('play-area').style.display = 'none';
+            
             const resData = currentDB.find(item => item.num === resultNum);
             
             const resNumEl = document.getElementById('res-number');
@@ -315,7 +335,9 @@
 
         function resetGame() {
             document.getElementById('result-display').style.display = 'none';
+            document.getElementById('play-area').style.display = 'flex';
             document.getElementById('center-num').innerText = "?";
+            // Опционально: можно не перемешивать заново, чтобы таблица сохранялась на сессию
         }
 
     </script>
