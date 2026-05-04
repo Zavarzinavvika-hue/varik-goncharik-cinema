@@ -192,6 +192,11 @@
         .game-race { border-bottom: 4px solid #00b4d8; }
         .game-bomb { border-bottom: 4px solid #ff9f1c; }
 
+        /* Цвета для квизов (тестов) */
+        .quiz-viewer { border-bottom: 4px solid #4facfe; }
+        .quiz-writer { border-bottom: 4px solid #f093fb; }
+        .quiz-director { border-bottom: 4px solid #f5576c; }
+
     </style>
 </head>
 <body>
@@ -219,20 +224,22 @@
                 <p>Игры и развлечения</p>
             </div>
 
-            <!-- Разделы в разработке (оставлены на 404, пока мы их не напишем) -->
-            <div class="menu-item tab-expert" onclick="showError404('Знаток фильмов')">
+            <!-- Открытие раздела с тестами -->
+            <div class="menu-item tab-expert" onclick="openScreen('quiz-content')">
                 <div class="icon">😎</div>
                 <h3>Знаток фильмов</h3>
                 <p>Проверь свои знания</p>
             </div>
 
-            <div class="menu-item tab-shop full-width" onclick="showError404('Лавка Гончарика')">
+            <!-- Прямая ссылка на магазин -->
+            <div class="menu-item tab-shop full-width" onclick="window.location.href='shop.html'">
                 <div class="icon">🛍️</div>
                 <h3>Лавка «Гончарика»</h3>
                 <p>Мерч и коллекционные вещи</p>
             </div>
 
-            <div class="menu-item tab-roulette full-width" onclick="showError404('Кино-Рулетка')">
+            <!-- Прямая ссылка на рулетку -->
+            <div class="menu-item tab-roulette full-width" onclick="window.location.href='roulette.html'">
                 <div class="icon">🎲</div>
                 <h3>Кино-Рулетка</h3>
                 <p>Подбор случайного фильма</p>
@@ -272,6 +279,36 @@
                 <div class="icon">💣</div>
                 <h3>Спасатель</h3>
                 <p>Отключи бомбу — отсылка к Оппенгеймеру</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ЭКРАН 3: Раздел Знаток Фильмов (Тесты) -->
+    <div id="quiz-content" class="screen">
+        <button class="btn-back" onclick="openScreen('main-content')">⬅ Назад в меню</button>
+        
+        <div class="header-title">
+            <h1>Уровень сложности</h1>
+        </div>
+
+        <div class="menu-grid">
+            <!-- Кнопки тестов -->
+            <div class="menu-item quiz-viewer full-width" onclick="window.location.href='viewer.html'">
+                <div class="icon">👀</div>
+                <h3>Зритель</h3>
+                <p>Легкий уровень: для любителей кино</p>
+            </div>
+
+            <div class="menu-item quiz-writer full-width" onclick="window.location.href='writer.html'">
+                <div class="icon">✍️</div>
+                <h3>Сценарист</h3>
+                <p>Средний уровень: вспомни сюжеты и цитаты</p>
+            </div>
+
+            <div class="menu-item quiz-director full-width" onclick="window.location.href='director.html'">
+                <div class="icon">🎬</div>
+                <h3>Режиссер</h3>
+                <p>Сложный уровень: для настоящих киноманов</p>
             </div>
         </div>
     </div>
@@ -328,12 +365,6 @@
                 activeScreen.style.display = 'block';
             }
         }
-
-        // Логика ошибки
-        function showError404(sectionName) {
-            tg.showAlert(`Ошибка 404 \nРаздел "${sectionName}" находится в стадии разработки!`);
-        }
     </script>
 </body>
 </html>
-
