@@ -7,11 +7,12 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            --bg-color: #1a0f14;
+            --bg-color: #0f172a;
             --main-color: #d4af37;
-            --accent-red: #8b0000;
-            --accent-black: #111;
-            --accent-green: #006400;
+            --main-dark: #b8860b;
+            --roulette-green: #0b5d2b;
+            --roulette-red: #c62828;
+            --roulette-black: #111111;
             --text-color: #f5f5f5;
         }
 
@@ -25,7 +26,7 @@
         .screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: none; flex-direction: column; align-items: center; justify-content: center;
-            background: radial-gradient(circle at center, #2a111a 0%, #0a0508 100%); z-index: 10;
+            background: radial-gradient(circle at center, #1a2a42 0%, #050810 100%); z-index: 10;
         }
 
         .active-screen { display: flex !important; }
@@ -44,95 +45,148 @@
 
         /* Кнопки */
         .btn {
-            background: linear-gradient(90deg, #d4af37, #b8860b); color: #000;
-            border: none; padding: 15px 40px; font-size: 20px; font-weight: bold;
+            background: linear-gradient(90deg, var(--main-color), var(--main-dark)); color: #000;
+            border: none; padding: 12px 30px; font-size: 18px; font-weight: bold;
             border-radius: 8px; cursor: pointer; margin: 10px; text-transform: uppercase;
             box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4); transition: 0.2s; min-width: 250px;
             -webkit-tap-highlight-color: transparent;
         }
         .btn:active { transform: scale(0.95); }
-        .btn-secondary { background: transparent; color: var(--main-color); border: 2px solid var(--main-color); box-shadow: none; }
+        .btn:disabled { background: #555; box-shadow: none; cursor: not-allowed; color: #888;}
         
         .btn-back {
-            position: absolute; top: 20px; left: 20px;
-            background: transparent; color: var(--main-color);
+            position: absolute; top: 15px; left: 15px;
+            background: rgba(0,0,0,0.5); color: var(--main-color);
             border: 1px solid var(--main-color); border-radius: 8px;
             padding: 8px 15px; font-size: 14px; cursor: pointer; z-index: 50;
         }
 
-        h2 { color: var(--main-color); text-transform: uppercase; text-shadow: 0 2px 4px rgba(0,0,0,0.8); font-size: 30px; margin-bottom: 20px; text-align: center;}
-        p.subtitle { font-size: 18px; text-align: center; max-width: 600px; margin-bottom: 30px; line-height: 1.4; color: #ccc;}
-
+        h2 { color: var(--main-color); text-transform: uppercase; text-shadow: 0 2px 4px rgba(0,0,0,0.8); font-size: 28px; margin-bottom: 10px; text-align: center;}
+        
         /* Заставка */
         #intro-screen h2 { animation: fadeInOut 3s infinite; }
         @keyframes fadeInOut { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
 
-        /* Игровой интерфейс */
-        .roulette-container {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            width: 100%; max-width: 800px;
-        }
-
-        .bet-section {
-            background: rgba(0,0,0,0.6); padding: 15px 30px; border-radius: 10px; border: 1px solid #444;
-            display: flex; align-items: center; gap: 15px; margin-bottom: 20px;
-        }
-        .bet-label { font-size: 18px; font-weight: bold; color: var(--main-color);}
-        .bet-input {
-            background: #222; border: 2px solid var(--main-color); color: white;
-            font-size: 24px; width: 80px; text-align: center; padding: 5px; border-radius: 5px; outline: none;
+        /* --- НОВЫЙ ИГРОВОЙ ИНТЕРФЕЙС (КОЛЕСО + СТОЛ) --- */
+        .casino-layout {
+            display: flex; align-items: center; justify-content: center; gap: 30px;
+            width: 100%; max-width: 1000px; padding: 20px; box-sizing: border-box;
+            transform: scale(0.9); /* Масштабируем для мобилок */
         }
 
         /* Колесо рулетки */
         .wheel-box {
-            position: relative; width: 250px; height: 250px; margin-bottom: 20px;
+            position: relative; width: 280px; height: 280px;
+            border-radius: 50%; border: 15px solid #8b5a2b;
+            box-shadow: 0 0 20px #000, inset 0 0 20px #000, 0 0 0 5px var(--main-color);
+            background: #222;
         }
         .wheel {
             width: 100%; height: 100%; border-radius: 50%;
-            background: conic-gradient(
-                #006400 0deg 10deg,
-                #8b0000 10deg 30deg, #111 30deg 50deg, #8b0000 50deg 70deg, #111 70deg 90deg, #8b0000 90deg 110deg, #111 110deg 130deg, #8b0000 130deg 150deg, #111 150deg 170deg, #8b0000 170deg 190deg, #111 190deg 210deg, #8b0000 210deg 230deg, #111 230deg 250deg, #8b0000 250deg 270deg, #111 270deg 290deg, #8b0000 290deg 310deg, #111 310deg 330deg, #8b0000 330deg 350deg, #111 350deg 360deg
-            );
-            border: 10px solid #cca300;
-            box-shadow: 0 0 30px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.8);
-            transition: transform 3s cubic-bezier(0.25, 0.1, 0.25, 1);
-            position: absolute; top:0; left:0;
-            box-sizing: border-box;
+            position: relative; overflow: hidden;
+            transition: transform 4s cubic-bezier(0.25, 0.1, 0.1, 1);
+        }
+        .wheel-segment {
+            position: absolute; top: 0; left: 50%; width: 24.3px; height: 50%;
+            transform-origin: bottom center; text-align: center;
+            clip-path: polygon(0 0, 100% 0, 50% 100%);
+        }
+        .wheel-segment span {
+            display: block; padding-top: 5px; font-size: 12px; font-weight: bold; color: white;
         }
         .wheel-center {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 60px; height: 60px; background: #222; border-radius: 50%; border: 3px solid var(--main-color);
-            display: flex; align-items: center; justify-content: center; z-index: 5;
+            width: 60px; height: 60px; background: radial-gradient(circle, #e6b800 0%, #b8860b 100%);
+            border-radius: 50%; border: 3px solid #ffe55c; z-index: 5;
+            box-shadow: 0 0 15px rgba(0,0,0,0.8);
+            display: flex; align-items: center; justify-content: center;
         }
-        .wheel-center span { color: var(--main-color); font-weight: bold; font-size: 24px; }
         .pointer {
-            position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
-            width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid var(--text-color);
-            z-index: 10; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));
+            position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+            width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 25px solid #fff;
+            z-index: 10; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+        }
+
+        /* Стол со ставками (Таблица) */
+        .table-board {
+            background: var(--roulette-green); padding: 15px; border-radius: 10px;
+            border: 8px solid #5c3a21; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            display: grid;
+            grid-template-columns: 45px repeat(12, 45px) 45px;
+            grid-template-rows: repeat(5, 40px);
+            gap: 2px;
+        }
+        
+        .cell {
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid rgba(255,255,255,0.5); font-weight: bold; font-size: 16px;
+            color: white; cursor: pointer; transition: 0.2s; box-sizing: border-box;
+        }
+        
+        /* Цвета ячеек */
+        .red { background-color: var(--roulette-red); }
+        .black { background-color: var(--roulette-black); }
+        .green { background-color: #008000; }
+        .empty-cell { border: none; cursor: default; }
+
+        /* Эффекты наведения и выбора */
+        .cell.bet-target:hover { filter: brightness(1.3); border: 2px solid #fff; }
+        .cell.selected { border: 3px solid var(--main-color); box-shadow: 0 0 15px var(--main-color) inset; z-index: 2; transform: scale(1.05); }
+
+        /* Позиционирование на сетке */
+        .zero { grid-area: 1 / 1 / 4 / 2; }
+        
+        .doz-1 { grid-area: 4 / 2 / 5 / 6; }
+        .doz-2 { grid-area: 4 / 6 / 5 / 10; }
+        .doz-3 { grid-area: 4 / 10 / 5 / 14; }
+
+        .bot-1 { grid-area: 5 / 2 / 6 / 4; }
+        .bot-2 { grid-area: 5 / 4 / 6 / 6; }
+        .bot-red { grid-area: 5 / 6 / 6 / 8; background-color: var(--roulette-red);}
+        .bot-black { grid-area: 5 / 8 / 6 / 10; background-color: var(--roulette-black);}
+        .bot-3 { grid-area: 5 / 10 / 6 / 12; }
+        .bot-4 { grid-area: 5 / 12 / 6 / 14; }
+
+        /* Вывод инструкции */
+        .instruction-box {
+            background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 8px;
+            border: 1px solid var(--main-color); margin-bottom: 15px; color: var(--main-color);
+            font-weight: bold; text-align: center;
         }
 
         /* Результат */
         #result-display {
-            display: none; background: rgba(0,0,0,0.8); border: 2px solid var(--main-color);
-            padding: 20px; border-radius: 10px; text-align: center; max-width: 600px; width: 90%;
-            animation: fadeIn 0.5s ease;
+            display: none; background: rgba(0,0,0,0.9); border: 2px solid var(--main-color);
+            padding: 30px; border-radius: 15px; text-align: center; max-width: 600px; width: 90%;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: absolute; z-index: 100; box-shadow: 0 0 50px rgba(0,0,0,1);
         }
-        #res-number { font-size: 40px; font-weight: bold; margin-bottom: 10px; }
-        .color-red { color: #ff3333; text-shadow: 0 0 10px #ff3333;}
-        .color-black { color: #888; text-shadow: 0 0 10px #fff;}
-        .color-green { color: #33ff33; text-shadow: 0 0 10px #33ff33;}
-        
-        #res-title { font-size: 24px; font-weight: bold; color: var(--main-color); margin-bottom: 10px;}
-        #res-desc { font-size: 16px; color: #ddd; line-height: 1.4; margin-bottom: 20px;}
-        #res-jackpot { display: none; color: #ffcc00; font-size: 20px; font-weight: bold; margin-bottom: 15px; text-shadow: 0 0 15px #ffcc00; animation: blink 1s infinite;}
+        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .res-number-circle {
+            width: 80px; height: 80px; border-radius: 50%; border: 3px solid #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 40px; font-weight: bold; margin: 0 auto 15px auto;
+            box-shadow: 0 0 20px rgba(255,255,255,0.2);
+        }
+        
+        #res-title { font-size: 26px; font-weight: bold; color: var(--main-color); margin-bottom: 10px;}
+        #res-desc { font-size: 16px; color: #ddd; line-height: 1.5; margin-bottom: 25px;}
+        #res-jackpot { display: none; color: #ffcc00; font-size: 20px; font-weight: bold; margin-bottom: 20px; padding: 15px; border: 2px dashed #ffcc00; border-radius: 10px; animation: blink 1s infinite;}
+
+        @media screen and (max-width: 850px) {
+            .casino-layout { transform: scale(0.65); flex-direction: row; gap: 15px; padding: 0;}
+            h2 { font-size: 22px; }
+        }
+        @media screen and (max-width: 650px) {
+            .casino-layout { transform: scale(0.55); }
+        }
 
     </style>
 </head>
 <body>
 
+    <!-- Блокировщик ориентации -->
     <div id="rotate-screen" class="screen" style="display: none;">
         <div class="rotate-icon">🔄</div>
         <h2>Пожалуйста, поверните телефон горизонтально</h2>
@@ -149,29 +203,37 @@
         <h2>Мы постараемся подобрать для вас кино и условия просмотра</h2>
     </div>
 
-    <!-- Игра -->
+    <!-- Игровой экран -->
     <div id="game-screen" class="screen">
         <button class="btn-back" onclick="window.location.href='index.html'">⬅ Выход</button>
         
-        <div class="roulette-container" id="play-area">
-            <h2>Кино-Рулетка</h2>
-            
-            <div class="bet-section">
-                <span class="bet-label">Ваше число (0-36):</span>
-                <input type="number" id="bet-input" class="bet-input" min="0" max="36" value="7">
-            </div>
+        <div class="instruction-box" id="instruction-text">Сделайте ставку: кликните на число от 0 до 36</div>
 
+        <div class="casino-layout" id="play-area">
+            
+            <!-- Колесо -->
             <div class="wheel-box">
                 <div class="pointer"></div>
-                <div class="wheel" id="wheel"></div>
-                <div class="wheel-center"><span id="center-num">?</span></div>
+                <div class="wheel" id="wheel">
+                    <!-- Сектора генерируются через JS -->
+                </div>
+                <div class="wheel-center"></div>
             </div>
 
-            <button class="btn" id="btn-spin" onclick="spinWheel()">Запустить рулетку</button>
+            <!-- Игровой стол -->
+            <div class="table-board" id="betting-table">
+                <!-- Ячейка 0 -->
+                <div class="cell green zero bet-target" onclick="placeBet(0, this)">0</div>
+                <!-- Остальные ячейки сгенерируются через JS -->
+            </div>
+
         </div>
 
+        <button class="btn" id="btn-spin" onclick="spinWheel()" disabled>Запустить рулетку</button>
+
+        <!-- Модальное окно результата -->
         <div id="result-display">
-            <div id="res-number">0</div>
+            <div class="res-number-circle" id="res-number-circle">0</div>
             <div id="res-title">Название</div>
             <div id="res-desc">Описание с кем смотреть</div>
             <div id="res-jackpot">🎉 ДЖЕКПОТ! СОВПАДЕНИЕ ЧИСЛА! СКИДКА 100% ВО ВСЕМ КИНОТЕАТРЕ! 🎉</div>
@@ -183,69 +245,58 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // База данных фильмов и сериалов
+        // Порядок чисел на европейской рулетке
+        const wheelOrder = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
+        
+        // Красные числа
+        const redNumbers = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
+
+        // База данных контента
         const contentDB = [
-            { num: 0, color: 'green', type: 'jackpot', title: "Сектор Зеро — Джекпот", desc: "Условие: Абсолютно любая компания или даже случайный прохожий. Смотрите что хотите, либо крупье выдает безумное задание!" },
-            { num: 1, color: 'red', type: 'movie', title: "Мстители: Финал", desc: "С кем: С громкой компанией друзей, особенно с теми, с кем обычно рубитесь в видеоигры." },
-            { num: 2, color: 'black', type: 'movie', title: "Темный рыцарь", desc: "С кем: С лучшим другом-киноманом или соло, чтобы вдумчиво оценить игру Хита Леджера." },
-            { num: 3, color: 'red', type: 'movie', title: "Трилогия «Железный человек»", desc: "С кем: С друзьями под пиццу, либо отличный фон, пока кодишь проект." },
-            { num: 4, color: 'black', type: 'movie', title: "Начало (Inception)", desc: "С кем: С интеллектуальной компанией, чтобы после титров полчаса спорить о концовке." },
-            { num: 5, color: 'red', type: 'movie', title: "Интерстеллар", desc: "С кем: Идеально для свидания — масштаб, эмоции и повод прижаться друг к другу." },
-            { num: 6, color: 'black', type: 'movie', title: "Матрица", desc: "С кем: Со старым другом, поностальгировать по добрым временам." },
-            { num: 7, color: 'red', type: 'movie', title: "Властелин колец: Братство Кольца", desc: "С кем: Огромной толпой друзей на долгие выходные с горой еды." },
-            { num: 8, color: 'black', type: 'movie', title: "Бойцовский клуб", desc: "С кем: В мужской компании или одному, чтобы перезагрузить голову." },
-            { num: 9, color: 'red', type: 'movie', title: "Форрест Гамп", desc: "С кем: В кругу семьи." },
-            { num: 10, color: 'black', type: 'movie', title: "Побег из Шоушенка", desc: "С кем: Соло или с близким другом, когда нужна порция мотивации." },
-            { num: 11, color: 'black', type: 'movie', title: "Криминальное чтиво", desc: "С кем: Для безбашенной домашней вечеринки." },
-            { num: 12, color: 'red', type: 'movie', title: "Гладиатор", desc: "С кем: С отцом или суровой мужской компанией." },
-            { num: 13, color: 'black', type: 'movie', title: "Назад в будущее", desc: "С кем: С младшими братьями/сестрами или друзьями детства." },
-            { num: 14, color: 'red', type: 'movie', title: "Терминатор 2: Судный день", desc: "С кем: С пацанами под холодные напитки и закуски." },
-            { num: 15, color: 'black', type: 'movie', title: "Крестный отец", desc: "С кем: В одиночестве или с товарищами по серьезным планам." },
-            { num: 16, color: 'red', type: 'movie', title: "Престиж", desc: "С кем: На свидании с девушкой, которую хочешь впечатлить." },
-            { num: 17, color: 'black', type: 'movie', title: "Джанго освобожденный", desc: "С кем: С шумной компанией, готовой к черному юмору." },
-            { num: 18, color: 'red', type: 'movie', title: "Остров проклятых", desc: "С кем: На свидании при выключенном свете, чтобы держаться за руки от напряжения." },
-            { num: 19, color: 'red', type: 'series', title: "Форс-мажоры (Suits)", desc: "С кем: Соло или с одногруппниками, для заряда мотивации." },
-            { num: 20, color: 'black', type: 'series', title: "Сверхъестественное", desc: "С кем: С братом, сестрой или лучшим другом, прошедшим с вами огонь и воду." },
-            { num: 21, color: 'red', type: 'series', title: "Касл", desc: "С кем: Безупречно для свидания — легкая интрига и юмор." },
-            { num: 22, color: 'black', type: 'series', title: "Ходячие мертвецы", desc: "С кем: С друзьями, чтобы обсуждать, кто бы выжил первым." },
-            { num: 23, color: 'red', type: 'series', title: "Острые козырьки", desc: "С кем: В суровой мужской компании." },
-            { num: 24, color: 'black', type: 'series', title: "Во все тяжкие", desc: "С кем: Со второй половинкой или одному, чтобы не упустить детали." },
-            { num: 25, color: 'red', type: 'series', title: "Игра престолов", desc: "С кем: Большой толпой друзей — кричать на телевизор веселее." },
-            { num: 26, color: 'black', type: 'series', title: "Настоящий детектив (1 сезон)", desc: "С кем: Одному, когда за окном дождь." },
-            { num: 27, color: 'red', type: 'series', title: "Очень странные дела", desc: "С кем: С друзьями, любителями видеоигр и 80-х." },
-            { num: 28, color: 'black', type: 'series', title: "Офис", desc: "С кем: Соло после рабочего дня, чтобы поржать." },
-            { num: 29, color: 'black', type: 'series', title: "Друзья", desc: "С кем: В компании друзей или фоном для работы." },
-            { num: 30, color: 'red', type: 'series', title: "Шерлок", desc: "С кем: На свидании или с любителями британской эстетики." },
-            { num: 31, color: 'black', type: 'series', title: "Черное зеркало", desc: "С кем: С друзьями-технарями." },
-            { num: 32, color: 'red', type: 'series', title: "Пацаны (The Boys)", desc: "С кем: Исключительно со взрослыми друзьями, готовыми к жести." },
-            { num: 33, color: 'black', type: 'series', title: "Доктор Хаус", desc: "С кем: С родителями-врачами или соло." },
-            { num: 34, color: 'red', type: 'series', title: "Фарго", desc: "С кем: Соло или с ценителем черных комедий." },
-            { num: 35, color: 'black', type: 'series', title: "Лучше звоните Солу", desc: "С кем: Одному, для вдумчивого просмотра." },
-            { num: 36, color: 'red', type: 'series', title: "Клан Сопрано", desc: "С кем: С близким другом." }
+            { num: 0, type: 'jackpot', title: "Сектор Зеро — Джекпот", desc: "Условие: Абсолютно любая компания или даже случайный прохожий. Смотрите что хотите, либо крупье выдает безумное задание!" },
+            { num: 1, type: 'movie', title: "Мстители: Финал", desc: "С кем: С громкой компанией друзей, особенно с теми, с кем обычно рубитесь в видеоигры." },
+            { num: 2, type: 'movie', title: "Темный рыцарь", desc: "С кем: С лучшим другом-киноманом или соло, чтобы вдумчиво оценить игру Хита Леджера." },
+            { num: 3, type: 'movie', title: "Трилогия «Железный человек»", desc: "С кем: С друзьями под пиццу, либо отличный фон, пока кодишь проект." },
+            { num: 4, type: 'movie', title: "Начало (Inception)", desc: "С кем: С интеллектуальной компанией, чтобы после титров полчаса спорить о концовке." },
+            { num: 5, type: 'movie', title: "Интерстеллар", desc: "С кем: Идеально для свидания — масштаб, эмоции и повод прижаться друг к другу." },
+            { num: 6, type: 'movie', title: "Матрица", desc: "С кем: Со старым другом, поностальгировать по добрым временам." },
+            { num: 7, type: 'movie', title: "Властелин колец: Братство Кольца", desc: "С кем: Огромной толпой друзей на долгие выходные с горой еды." },
+            { num: 8, type: 'movie', title: "Бойцовский клуб", desc: "С кем: В мужской компании или одному, чтобы перезагрузить голову." },
+            { num: 9, type: 'movie', title: "Форрест Гамп", desc: "С кем: В кругу семьи." },
+            { num: 10, type: 'movie', title: "Побег из Шоушенка", desc: "С кем: Соло или с близким другом, когда нужна порция мотивации." },
+            { num: 11, type: 'movie', title: "Криминальное чтиво", desc: "С кем: Для безбашенной домашней вечеринки." },
+            { num: 12, type: 'movie', title: "Гладиатор", desc: "С кем: С отцом или суровой мужской компанией." },
+            { num: 13, type: 'movie', title: "Назад в будущее", desc: "С кем: С младшими братьями/сестрами или друзьями детства." },
+            { num: 14, type: 'movie', title: "Терминатор 2: Судный день", desc: "С кем: С пацанами под холодные напитки и закуски." },
+            { num: 15, type: 'movie', title: "Крестный отец", desc: "С кем: В одиночестве или с товарищами по серьезным планам." },
+            { num: 16, type: 'movie', title: "Престиж", desc: "С кем: На свидании с девушкой, которую хочешь впечатлить." },
+            { num: 17, type: 'movie', title: "Джанго освобожденный", desc: "С кем: С шумной компанией, готовой к черному юмору." },
+            { num: 18, type: 'movie', title: "Остров проклятых", desc: "С кем: На свидании при выключенном свете, чтобы держаться за руки от напряжения." },
+            { num: 19, type: 'series', title: "Форс-мажоры (Suits)", desc: "С кем: Соло или с одногруппниками, для заряда мотивации." },
+            { num: 20, type: 'series', title: "Сверхъестественное", desc: "С кем: С братом, сестрой или лучшим другом, прошедшим с вами огонь и воду." },
+            { num: 21, type: 'series', title: "Касл", desc: "С кем: Безупречно для свидания — легкая интрига и юмор." },
+            { num: 22, type: 'series', title: "Ходячие мертвецы", desc: "С кем: С друзьями, чтобы обсуждать, кто бы выжил первым." },
+            { num: 23, type: 'series', title: "Острые козырьки", desc: "С кем: В суровой мужской компании." },
+            { num: 24, type: 'series', title: "Во все тяжкие", desc: "С кем: Со второй половинкой или одному, чтобы не упустить детали." },
+            { num: 25, type: 'series', title: "Игра престолов", desc: "С кем: Большой толпой друзей — кричать на телевизор веселее." },
+            { num: 26, type: 'series', title: "Настоящий детектив (1 сезон)", desc: "С кем: Одному, когда за окном дождь." },
+            { num: 27, type: 'series', title: "Очень странные дела", desc: "С кем: С друзьями, любителями видеоигр и 80-х." },
+            { num: 28, type: 'series', title: "Офис", desc: "С кем: Соло после рабочего дня, чтобы поржать." },
+            { num: 29, type: 'series', title: "Друзья", desc: "С кем: В компании друзей или фоном для работы." },
+            { num: 30, type: 'series', title: "Шерлок", desc: "С кем: На свидании или с любителями британской эстетики." },
+            { num: 31, type: 'series', title: "Черное зеркало", desc: "С кем: С друзьями-технарями." },
+            { num: 32, type: 'series', title: "Пацаны (The Boys)", desc: "С кем: Исключительно со взрослыми друзьями, готовыми к жести." },
+            { num: 33, type: 'series', title: "Доктор Хаус", desc: "С кем: С родителями-врачами или соло." },
+            { num: 34, type: 'series', title: "Фарго", desc: "С кем: Соло или с ценителем черных комедий." },
+            { num: 35, type: 'series', title: "Лучше звоните Солу", desc: "С кем: Одному, для вдумчивого просмотра." },
+            { num: 36, type: 'series', title: "Клан Сопрано", desc: "С кем: С близким другом." }
         ];
 
-        // Перемешиваем привязку контента к числам 1-36, чтобы каждый раз было по-разному
-        // 0 всегда Зеро
-        function shuffleContent() {
-            let items = contentDB.slice(1); // без 0
-            for (let i = items.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [items[i], items[j]] = [items[j], items[i]];
-            }
-            // Переназначаем номера
-            for(let i=0; i<items.length; i++) {
-                items[i].num = i+1;
-                // Назначаем классические цвета рулетки
-                const redNumbers = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
-                items[i].color = redNumbers.includes(i+1) ? 'red' : 'black';
-            }
-            return [contentDB[0], ...items];
-        }
-
-        let currentDB = shuffleContent();
+        let selectedBet = null;
         let isSpinning = false;
         let currentRotation = 0;
 
+        // Контроль горизонтального режима
         function checkOrientation() {
             let rotScreen = document.getElementById('rotate-screen');
             if (window.innerHeight > window.innerWidth) {
@@ -254,11 +305,10 @@
                 rotScreen.style.display = 'none';
             }
         }
-
         window.addEventListener('resize', checkOrientation);
         checkOrientation();
 
-        // Секвенция заставок
+        // Заставки
         setTimeout(() => {
             document.getElementById('intro-1').classList.remove('active-screen');
             document.getElementById('intro-2').classList.add('active-screen');
@@ -268,61 +318,142 @@
             }, 3000);
         }, 3000);
 
-        function spinWheel() {
-            if (isSpinning) return;
+        // Инициализация Колеса
+        function buildWheel() {
+            const wheel = document.getElementById('wheel');
+            const anglePerSegment = 360 / 37;
             
-            const betInput = document.getElementById('bet-input');
-            let bet = parseInt(betInput.value);
+            wheelOrder.forEach((num, index) => {
+                let colorClass = num === 0 ? '#008000' : (redNumbers.includes(num) ? '#c62828' : '#111111');
+                const angle = index * anglePerSegment;
+                
+                // Создаем сегмент через clip-path и вращение
+                const segment = document.createElement('div');
+                segment.className = 'wheel-segment';
+                segment.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+                segment.style.backgroundColor = colorClass;
+                
+                // Вращаем само число, чтобы оно смотрело в центр
+                segment.innerHTML = `<span style="transform: rotate(180deg); display: inline-block;">${num}</span>`;
+                wheel.appendChild(segment);
+            });
+        }
+
+        // Инициализация Стола
+        function buildTable() {
+            const table = document.getElementById('betting-table');
             
-            if (isNaN(bet) || bet < 0 || bet > 36) {
-                tg.showAlert("Брат, ставь число от 0 до 36!");
-                return;
+            // Ряды чисел рулетки (сверху вниз)
+            const row1 = [3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36];
+            const row2 = [2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 32, 35];
+            const row3 = [1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34];
+
+            function addCells(arr, rowNum) {
+                arr.forEach((num, colIdx) => {
+                    let color = redNumbers.includes(num) ? 'red' : 'black';
+                    let cell = document.createElement('div');
+                    cell.className = `cell ${color} bet-target`;
+                    cell.style.gridArea = `${rowNum} / ${colIdx + 2} / ${rowNum + 1} / ${colIdx + 3}`;
+                    cell.innerText = num;
+                    cell.onclick = () => placeBet(num, cell);
+                    table.appendChild(cell);
+                });
             }
 
+            addCells(row1, 1);
+            addCells(row2, 2);
+            addCells(row3, 3);
+
+            // Боковые ставки (визуальный декор)
+            const decoCells = [
+                { cl: 'cell empty-cell', area: '1 / 14 / 2 / 15', text: '2:1' },
+                { cl: 'cell empty-cell', area: '2 / 14 / 3 / 15', text: '2:1' },
+                { cl: 'cell empty-cell', area: '3 / 14 / 4 / 15', text: '2:1' },
+                { cl: 'cell empty-cell doz-1', area: '4 / 2 / 5 / 6', text: '1st 12' },
+                { cl: 'cell empty-cell doz-2', area: '4 / 6 / 5 / 10', text: '2nd 12' },
+                { cl: 'cell empty-cell doz-3', area: '4 / 10 / 5 / 14', text: '3rd 12' },
+                { cl: 'cell empty-cell bot-1', area: '5 / 2 / 6 / 4', text: '1-18' },
+                { cl: 'cell empty-cell bot-2', area: '5 / 4 / 6 / 6', text: 'EVEN' },
+                { cl: 'cell bot-red empty-cell', area: '5 / 6 / 6 / 8', text: '' },
+                { cl: 'cell bot-black empty-cell', area: '5 / 8 / 6 / 10', text: '' },
+                { cl: 'cell empty-cell bot-3', area: '5 / 10 / 6 / 12', text: 'ODD' },
+                { cl: 'cell empty-cell bot-4', area: '5 / 12 / 6 / 14', text: '19-36' }
+            ];
+
+            decoCells.forEach(d => {
+                let cell = document.createElement('div');
+                cell.className = d.cl;
+                cell.style.gridArea = d.area;
+                cell.innerText = d.text;
+                table.appendChild(cell);
+            });
+        }
+
+        buildWheel();
+        buildTable();
+
+        // Выбор ставки на столе
+        function placeBet(num, cellElement) {
+            if (isSpinning) return;
+            
+            // Снимаем выделение со всех
+            document.querySelectorAll('.bet-target').forEach(el => el.classList.remove('selected'));
+            
+            // Выделяем нажатую
+            cellElement.classList.add('selected');
+            selectedBet = num;
+            
+            document.getElementById('instruction-text').innerHTML = `Вы поставили на: <span style="color:white; font-size:20px;">${num}</span>. Крутите рулетку!`;
+            document.getElementById('btn-spin').disabled = false;
+        }
+
+        // Запуск
+        function spinWheel() {
+            if (isSpinning || selectedBet === null) return;
+            
             isSpinning = true;
             document.getElementById('btn-spin').disabled = true;
-            document.getElementById('result-display').style.display = 'none';
-            document.getElementById('play-area').style.display = 'flex';
 
-            // Генерируем результат (от 0 до 36)
+            // Выбираем случайное число-победитель
             const resultNum = Math.floor(Math.random() * 37);
             
-            // Анимация колеса (просто визуал)
+            // Находим индекс этого числа на колесе
+            const targetIndex = wheelOrder.indexOf(resultNum);
+            
+            // Вычисляем угол поворота (чтобы число оказалось наверху под стрелкой)
+            const anglePerSegment = 360 / 37;
+            // Нужно крутануть колесо так, чтобы центр сегмента был на 0 градусов
+            const targetAngle = 360 - (targetIndex * anglePerSegment); 
+            
+            // Добавляем 5 полных оборотов для эффекта + сдвиг на половину сегмента для точности
             const spins = 5;
-            const extraDegrees = Math.floor(Math.random() * 360);
-            currentRotation += (360 * spins) + extraDegrees;
+            currentRotation += (360 * spins) + targetAngle - (currentRotation % 360);
             
             const wheel = document.getElementById('wheel');
             wheel.style.transform = `rotate(${currentRotation}deg)`;
 
-            // Фейковая смена цифр в центре для эффекта
-            let numInterval = setInterval(() => {
-                document.getElementById('center-num').innerText = Math.floor(Math.random() * 37);
-            }, 100);
-
+            // Ждем завершения анимации
             setTimeout(() => {
-                clearInterval(numInterval);
-                document.getElementById('center-num').innerText = resultNum;
-                showResult(bet, resultNum);
-                isSpinning = false;
-                document.getElementById('btn-spin').disabled = false;
-            }, 3000);
+                showResult(resultNum);
+            }, 4200);
         }
 
-        function showResult(bet, resultNum) {
-            document.getElementById('play-area').style.display = 'none';
+        function showResult(resultNum) {
+            const resData = contentDB.find(item => item.num === resultNum);
             
-            const resData = currentDB.find(item => item.num === resultNum);
-            
-            const resNumEl = document.getElementById('res-number');
-            resNumEl.innerText = resultNum;
-            resNumEl.className = `color-${resData.color}`;
+            // Настройка кружка с результатом
+            const circle = document.getElementById('res-number-circle');
+            circle.innerText = resultNum;
+            let bgColor = resultNum === 0 ? '#008000' : (redNumbers.includes(resultNum) ? '#c62828' : '#111111');
+            circle.style.backgroundColor = bgColor;
 
+            // Настройка текста
             document.getElementById('res-title').innerText = resData.title;
             document.getElementById('res-desc').innerText = resData.desc;
 
+            // Проверка Джекпота (ставка сыграла)
             const jackpotEl = document.getElementById('res-jackpot');
-            if (bet === resultNum) {
+            if (selectedBet === resultNum) {
                 jackpotEl.style.display = 'block';
                 tg.HapticFeedback.notificationOccurred('success');
             } else {
@@ -335,9 +466,8 @@
 
         function resetGame() {
             document.getElementById('result-display').style.display = 'none';
-            document.getElementById('play-area').style.display = 'flex';
-            document.getElementById('center-num').innerText = "?";
-            // Опционально: можно не перемешивать заново, чтобы таблица сохранялась на сессию
+            isSpinning = false;
+            document.getElementById('btn-spin').disabled = false;
         }
 
     </script>
