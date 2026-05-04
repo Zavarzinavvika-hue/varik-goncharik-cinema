@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Знаток фильмов: Режиссёр</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            /* Темно-синий, темно-золотой и темно-красный */
+            --bg-color: #050810; 
+            --accent-gold: #b8860b; 
+            --accent-gold-light: #d4af37;
+            --accent-red: #8b0000;
+            --accent-red-light: #e50914;
+            --accent-blue: #0a192f;
+            --text-main: #ffffff;
+            --text-secondary: #cccccc;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(45deg, #050810, #140505, #0a192f, #1a1000);
+            background-size: 300% 300%;
+            animation: gradientBG 15s ease infinite;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Верхняя панель */
+        .top-bar {
+            width: 100%; max-width: 600px;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px 25px; box-sizing: border-box;
+        }
+
+        .btn-exit {
+            background: rgba(0,0,0,0.5); color: var(--text-secondary);
+            border: 1px solid var(--accent-gold); border-radius: 8px;
+            padding: 8px 15px; font-size: 14px; cursor: pointer;
+            transition: 0.2s; text-transform: uppercase; font-weight: bold;
+        }
+        .btn-exit:active { background: var(--accent-gold); color: #000; transform: scale(0.95); }
+
+        .attempts { display: flex; gap: 5px; font-size: 24px; text-shadow: 0 0 10px var(--accent-red-light);}
+        .heart { color: var(--accent-red-light); transition: 0.3s; }
+        .heart.lost { color: #333; transform: scale(0.8); text-shadow: none;}
+
+        /* Прогресс бар */
+        .progress-container {
+            width: 100%; max-width: 600px; padding: 0 25px; box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+        .progress-text { font-size: 14px; color: var(--accent-gold-light); margin-bottom: 5px; font-weight: bold; letter-spacing: 1px;}
+        .progress-bar { width: 100%; height: 6px; background: rgba(0,0,0,0.6); border-radius: 3px; overflow: hidden; border: 1px solid #333;}
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent-red), var(--accent-gold)); width: 0%; transition: width 0.4s ease; }
+
+        /* Контейнер вопроса */
+        .quiz-container {
+            width: 90%; max-width: 600px; flex-grow: 1;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        .question-card {
+            width: 100%; background: rgba(10, 15, 25, 0.85); border: 2px solid var(--accent-gold);
+            border-radius: 15px; padding: 20px; box-sizing: border-box; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8), inset 0 0 20px rgba(184, 134, 11, 0.1);
+            margin-bottom: 20px; animation: fadeIn 0.4s ease; display: flex; flex-direction: column; align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .image-container {
+            width: 100%; height: 230px; border-radius: 8px; overflow: hidden;
+            border: 1px solid var(--accent-gold); position: relative; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.8);
+            background: #020202; display: flex; justify-content: center; align-items: center;
+            padding: 4px; box-sizing: border-box; margin-bottom: 15px;
+        }
+        .image-container img { width: 100%; height: 100%; object-fit: contain; border-radius: 4px; }
+
+        /* Цитаты и текст */
+        .quote-text {
+            font-size: 16px; color: var(--text-main); margin: 0 0 15px 0; 
+            font-style: italic; text-align: center; line-height: 1.5;
+            text-shadow: 1px 1px 2px #000;
+        }
+        .question-instruction {
+            font-size: 14px; color: var(--accent-gold-light); font-weight: bold; text-align: center;
+            margin-bottom: 15px; text-transform: uppercase;
+        }
+
+        /* Поле ввода (Сценарий) */
+        .input-section { width: 100%; display: flex; flex-direction: column; gap: 10px; padding-bottom: 30px; }
+        .answer-input {
+            width: 100%; background: rgba(0,0,0,0.6); border: 2px solid var(--accent-blue); color: white;
+            padding: 15px 20px; border-radius: 12px; font-size: 16px; box-sizing: border-box;
+            outline: none; transition: 0.3s; text-align: center;
+        }
+        .answer-input:focus { border-color: var(--accent-gold-light); box-shadow: 0 0 15px rgba(212, 175, 55, 0.4); }
+        .answer-input.wrong { border-color: var(--accent-red-light); animation: shake 0.4s; }
+        .answer-input.correct { border-color: #4caf50; background: rgba(76, 175, 80, 0.2); }
+
+        /* Кнопки выбора (Мульти-выбор) */
+        .options-grid { width: 100%; display: flex; flex-direction: column; gap: 10px; padding-bottom: 30px;}
+        .option-btn {
+            background: rgba(10, 25, 47, 0.8); border: 2px solid #223;
+            color: var(--text-main); padding: 15px 20px;
+            border-radius: 10px; font-size: 15px; text-align: left;
+            cursor: pointer; transition: all 0.2s; -webkit-tap-highlight-color: transparent;
+        }
+        .option-btn:hover:not(:disabled) { border-color: var(--accent-gold); background: rgba(20, 40, 70, 0.9); }
+        .option-btn:active:not(:disabled) { transform: scale(0.98); }
+        .option-btn.correct { background: #2e7d32; border-color: #4caf50; color: #fff; box-shadow: 0 0 15px rgba(76, 175, 80, 0.4); }
+        .option-btn.wrong { background: var(--accent-red); border-color: var(--accent-red-light); color: #fff; animation: shake 0.4s; }
+        .option-btn:disabled { cursor: not-allowed; opacity: 0.7; }
+
+        /* Кнопка ответа */
+        .btn-submit {
+            background: linear-gradient(45deg, var(--accent-red), var(--accent-gold));
+            color: #fff; border: 1px solid var(--accent-gold-light); padding: 15px; border-radius: 12px; 
+            font-size: 16px; font-weight: bold; text-transform: uppercase;
+            cursor: pointer; box-shadow: 0 5px 15px rgba(184, 134, 11, 0.3); transition: 0.2s;
+            -webkit-tap-highlight-color: transparent; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+        .btn-submit:active { transform: scale(0.95); }
+        .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Итоговый экран */
+        #result-screen { display: none; text-align: center; padding-top: 10vh; animation: fadeIn 0.5s ease; width: 90%; max-width: 600px;}
+        .result-title { font-size: 32px; color: var(--accent-gold-light); margin-bottom: 10px; text-transform: uppercase; text-shadow: 0 0 15px rgba(212, 175, 55, 0.5);}
+        .result-score { font-size: 70px; font-weight: bold; margin: 20px 0; text-shadow: 0 0 20px rgba(229, 9, 20, 0.8); color: white;}
+        .result-desc { font-size: 16px; color: var(--text-secondary); margin-bottom: 40px; line-height: 1.5; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="quiz-screen" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+        
+        <div class="top-bar">
+            <button class="btn-exit" onclick="window.location.href='index.html'">Выйти</button>
+            <div class="attempts" id="attempts-display">
+                <span class="heart" id="heart-1">❤</span>
+            </div>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-text" id="progress-text">Вопрос 1 из 11</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+        </div>
+
+        <div class="quiz-container">
+            <div class="question-card" id="question-card">
+                <!-- Контент генерируется через JS -->
+            </div>
+
+            <div id="dynamic-input-area" style="width: 100%;">
+                <!-- Инпуты или кнопки генерируются через JS -->
+            </div>
+        </div>
+    </div>
+
+    <div id="result-screen">
+        <h1 class="result-title">Снято!</h1>
+        <div class="result-score" id="result-score">0/11</div>
+        <p class="result-desc" id="result-desc"></p>
+        <button class="btn-submit" style="width: 100%;" onclick="window.location.href='index.html'">Вернуться в меню</button>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // БАЗА ВОПРОСОВ (Микс из текста и кнопок)
+        let questions = [
+            {
+                type: "input",
+                instruction: "Из какого фильма или произведения данная цитата? Впишите слово:",
+                quote: "«Страх убивает разум. Страх есть малая смерть, влекущая за собой полное уничтожение. Я встречу свой страх и приму его. Я позволю ему пройти надо мной и сквозь меня. И когда он пройдёт через меня, я обращу свой внутренний взор на его путь; и там, где был страх, не останется ничего. Останусь лишь я, я сам.»",
+                correctAnswers: ["дюна"]
+            },
+            {
+                type: "input",
+                instruction: "Из какого фильма или произведения данная цитата? Впишите слово:",
+                quote: "«Зло — это зло, Стрегобор, — серьёзно сказал ведьмак, вставая. — Меньшее, большее, среднее — всё едино, пропорции условны, а границы размыты. Я не святой отшельник, не только одно добро творил в жизни. Но если приходится выбирать между одним злом и другим, я предпочитаю не выбирать вообще.»",
+                correctAnswers: ["ведьмак"]
+            },
+            {
+                type: "input",
+                instruction: "Назовите сериал, откуда взят данный фрагмент:",
+                img: "https://sun9-43.userapi.com/s/v1/ig2/1gD4r83BybUte1-MXGMunYCIXeZ1QAlHPpXGqVXaYZ-jhee4M8wmsoYBYncqf1h1aCdiPDQy8670ca5gdtWf9tLV.jpg?quality=95&as=32x18,48x27,72x40,108x61,160x90,240x135,360x202,480x270,540x304,640x360,720x405,1080x607,1280x720,1440x810,2000x1125&from=bu&u=gUKsNf3e-EbHjYfpmFG6HIFrOSf4hc6PsPxKB-0cuio&cs=2000x0",
+                correctAnswers: ["одни из нас", "the last of us", "thelastofus", "одни изнас"]
+            },
+            {
+                type: "choice",
+                instruction: "Выберите правильный ответ:",
+                text: "Как называется столица Гондора?",
+                options: ["A) Минас Тирит", "B) Краснодар", "C) Хобитания", "D) Валимар"],
+                correctIndex: 0
+            },
+            {
+                type: "choice",
+                instruction: "Впишите пропущенное слово:",
+                text: "Нельзя просто так взять и войти в ….",
+                options: ["A) отделение МВД", "B) Университет", "C) Мордор", "D) Красноярск"],
+                correctIndex: 2
+            },
+            {
+                type: "choice",
+                instruction: "Впишите пропущенное слово:",
+                text: "Я обрёл …. Потеря всякой надежды и была свободой.",
+                options: ["A) Счастье", "B) Кредит", "C) Военный билет", "D) Свободу"],
+                correctIndex: 3
+            },
+            {
+                type: "choice",
+                instruction: "Кто это?",
+                img: "https://sun9-43.userapi.com/s/v1/ig2/p4l3j8_H44WTrGOeUsVaj6KjF9v2aFrZmr252iu0GBgyfYRvgQ-QQCheHYU5JN_YQW1Pj-yVfP4MjCNr7OrFvEqT.jpg?quality=95&as=32x13,48x20,72x30,108x45,160x67,240x100,360x151,480x201&from=bu&u=fGLZjgejmSWwDLDKzVtIL4zziL4uBEI85x30MA6dh98&cs=480x0",
+                options: ["A) Котенок", "B) Смауг", "C) Дрого", "D) Щенок", "E) Змей Горыныч", "F) Петрович"],
+                correctIndex: 1
+            },
+            {
+                type: "input",
+                instruction: "Из какого фрагмента взят фильм? Напишите название полностью:",
+                img: "https://sun9-78.userapi.com/s/v1/ig2/G-yfoOcyaTTlgU7aI2s3I1kgaOqqMFdlXJCcj8oaAaGPnkDShrGxicKt-ojBbzsdxz0XioY-po5dB4nFViIX9U7i.jpg?quality=95&as=32x13,48x20,72x30,108x45,160x67,240x100,360x150,480x200,540x225,640x267,720x300,1080x450,1280x533,1440x600,1920x800&from=bu&u=YIvnEZVk05PR_QBf2WHOeK8EPixfA9rqdOoE4I21xwI&cs=1920x0",
+                correctAnswers: ["пираты карибского моря проклятие черной жемчужины", "пираты карибского моря проклятие чёрной жемчужины"]
+            },
+            {
+                type: "input",
+                instruction: "Из какого фрагмента взят фильм? Напишите название полностью:",
+                img: "https://sun9-11.userapi.com/s/v1/ig2/AmiJoRON01E7UqWbMdel-OhHU47WObK3lWr8CN-wAjZodOKVQXFcC6NWZRlWGGaFya0iu7yVaWN_tc71FnZoPSUE.jpg?quality=95&as=32x21,48x31,72x47,108x70,160x104,240x156,360x235,480x313,540x352,640x417,720x469,1080x704,1200x782&from=bu&u=T6Ar8tBK0fgT_RXgrMLsZFzdGr0sj8TzlousL7L32u8&cs=1200x0",
+                correctAnswers: ["гарри поттер и тайная комната"]
+            },
+            {
+                type: "choice",
+                instruction: "Выберите правильный ответ:",
+                text: "Какой сплав использовал Тони Старк при создании брони Mark III, чтобы решить критическую проблему обледенения костюма во время полетов на больших высотах?",
+                img: "https://sun9-2.userapi.com/s/v1/ig2/GoS071yQIP91MfK8Hyf6pkuyyV2xMEB2vfjCfAfxnzpwPXVeID7OqTaFrD5kNvGgLQxUhe1OvWmjSQ2AD-Uuo5cQ.jpg?quality=95&as=32x21,48x32,72x48,108x72,160x107,240x160,360x240,480x320&from=bu&u=QRdt9HXDWr4NZLqk5Ak6Tjgt6Dv5tUnzChfOdKI8BcI&cs=480x0",
+                options: ["A) Вибраниум и сталь", "B) Золото и титан", "C) Палладий и кобальт", "D) Карбон и вольфрам"],
+                correctIndex: 1
+            },
+            {
+                type: "input",
+                instruction: "Из какого фрагмента взят фильм? Напишите название полностью:",
+                img: "https://sun9-38.userapi.com/s/v1/ig2/Ix7WqgiDzbVkwWzoDyjI0LsixRoQ1EmzZNPcHIG1EqQubMNGU6eNce-GYhWNsQD8bFGWXN01QZ_gK1hDgWHmWGWc.jpg?quality=95&as=32x18,48x27,72x41,108x61,160x90,240x135,360x203,480x270,540x304,640x360,720x405,1080x608,1280x720,1440x810,1500x844&from=bu&u=mpzJ2FvwQgXWfQtr8m0UFSoh14V7E6V2TJnXs3usIno&cs=1500x0",
+                correctAnswers: ["парк юрского периода 1", "парк юрского периода"]
+            }
+        ];
+
+        let currentIdx = 0;
+        let score = 0;
+        let isProcessing = false;
+        
+        const progressTextEl = document.getElementById('progress-text');
+        const progressFillEl = document.getElementById('progress-fill');
+        const questionCardEl = document.getElementById('question-card');
+        const dynamicAreaEl = document.getElementById('dynamic-input-area');
+        const heartEl = document.getElementById('heart-1');
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function startQuiz() {
+            shuffle(questions);
+            currentIdx = 0;
+            score = 0;
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            isProcessing = false;
+            heartEl.classList.remove('lost');
+
+            const q = questions[currentIdx];
+            
+            progressTextEl.innerText = `Вопрос ${currentIdx + 1} из ${questions.length}`;
+            progressFillEl.style.width = `${((currentIdx) / questions.length) * 100}%`;
+
+            // Собираем карточку вопроса
+            let cardHTML = `<div class="question-instruction">${q.instruction}</div>`;
+            if (q.img) {
+                cardHTML += `<div class="image-container"><img src="${q.img}" alt="Кадр"></div>`;
+            }
+            if (q.quote) {
+                cardHTML += `<p class="quote-text">${q.quote}</p>`;
+            }
+            if (q.text) {
+                cardHTML += `<p class="quote-text" style="font-style: normal; font-weight: bold; font-size: 18px;">${q.text}</p>`;
+            }
+            questionCardEl.innerHTML = cardHTML;
+
+            // Собираем поле ввода или кнопки
+            dynamicAreaEl.innerHTML = '';
+            if (q.type === 'choice') {
+                const grid = document.createElement('div');
+                grid.className = 'options-grid';
+                q.options.forEach((opt, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.innerText = opt;
+                    btn.onclick = () => handleChoiceAnswer(idx, btn);
+                    grid.appendChild(btn);
+                });
+                dynamicAreaEl.appendChild(grid);
+            } else {
+                const section = document.createElement('div');
+                section.className = 'input-section';
+                section.innerHTML = `
+                    <input type="text" id="answer-input" class="answer-input" placeholder="Введите ответ..." autocomplete="off">
+                    <button class="btn-submit" id="btn-submit" onclick="handleTextAnswer()">Ответить</button>
+                `;
+                dynamicAreaEl.appendChild(section);
+                
+                const inp = document.getElementById('answer-input');
+                inp.addEventListener("keypress", function(e) {
+                    if (e.key === "Enter") { e.preventDefault(); handleTextAnswer(); }
+                });
+            }
+
+            questionCardEl.style.animation = 'none';
+            questionCardEl.offsetHeight; 
+            questionCardEl.style.animation = 'fadeIn 0.4s ease';
+        }
+
+        function normalizeString(str) {
+            return str.toLowerCase().replace(/[^а-яёa-z0-9]/g, '');
+        }
+
+        function triggerFailure() {
+            heartEl.classList.add('lost');
+            isProcessing = true;
+            setTimeout(nextQuestion, 1500);
+        }
+
+        function handleChoiceAnswer(selectedIndex, btnElement) {
+            if (isProcessing) return;
+            isProcessing = true;
+
+            const q = questions[currentIdx];
+            const allBtns = dynamicAreaEl.querySelectorAll('.option-btn');
+            
+            if (selectedIndex === q.correctIndex) {
+                btnElement.classList.add('correct');
+                score++;
+                setTimeout(nextQuestion, 1000);
+            } else {
+                btnElement.classList.add('wrong');
+                allBtns[q.correctIndex].classList.add('correct'); // Показываем правильный
+                heartEl.classList.add('lost');
+                setTimeout(nextQuestion, 2000);
+            }
+            allBtns.forEach(b => b.disabled = true);
+        }
+
+        function handleTextAnswer() {
+            if (isProcessing) return;
+            
+            const inp = document.getElementById('answer-input');
+            const btn = document.getElementById('btn-submit');
+            const userInput = inp.value.trim();
+            if (userInput === "") return;
+
+            const q = questions[currentIdx];
+            const normalizedUser = normalizeString(userInput);
+            const isCorrect = q.correctAnswers.some(ans => normalizeString(ans) === normalizedUser);
+
+            if (isCorrect) {
+                isProcessing = true;
+                inp.classList.add('correct');
+                inp.disabled = true;
+                btn.disabled = true;
+                score++;
+                setTimeout(nextQuestion, 1000);
+            } else {
+                isProcessing = true;
+                inp.classList.add('wrong');
+                inp.disabled = true;
+                btn.disabled = true;
+                inp.value = `Ответ: ${q.correctAnswers[0].toUpperCase()}`;
+                inp.style.color = "var(--accent-red-light)";
+                heartEl.classList.add('lost');
+                setTimeout(nextQuestion, 2500);
+            }
+        }
+
+        function nextQuestion() {
+            currentIdx++;
+            if (currentIdx < questions.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+            
+            document.getElementById('result-score').innerText = `${score}/${questions.length}`;
+            
+            const descEl = document.getElementById('result-desc');
+            if (score === questions.length) {
+                descEl.innerText = "ИДЕАЛЬНО! Сам Стивен Спилберг пожал бы вам руку.";
+            } else if (score >= 8) {
+                descEl.innerText = "Достойная работа, Режиссер! У вас отличная насмотренность.";
+            } else if (score >= 5) {
+                descEl.innerText = "Хороший результат, но до кресла постановщика еще предстоит набраться опыта.";
+            } else {
+                descEl.innerText = "Съемки провалены. Возвращайтесь в киношколу и пересматривайте классику.";
+            }
+        }
+
+        window.onload = startQuiz;
+
+    </script>
+</body>
+</html>
