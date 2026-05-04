@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Знаток фильмов: Сценарист</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-color: #050810; /* Очень глубокий темный цвет */
+            --card-bg: rgba(15, 25, 40, 0.95); /* Темно-синяя подложка карточек */
+            --accent-main: #d4af37; /* Темно-золотой акцент */
+            --accent-sec: #1e3c72; /* Темно-синий акцент */
+            --accent-green: #388e3c;
+            --accent-red: #e50914;
+            --text-main: #ffffff;
+            --text-secondary: #aaaaaa;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at top, #0f1c30 0%, var(--bg-color) 100%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        /* Верхняя панель */
+        .top-bar {
+            width: 100%; max-width: 600px;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px 25px; box-sizing: border-box;
+        }
+
+        .btn-exit {
+            background: transparent; color: var(--text-secondary);
+            border: 1px solid #444; border-radius: 8px;
+            padding: 8px 15px; font-size: 14px; cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-exit:active { background: #333; color: white; transform: scale(0.95); }
+
+        .attempts { display: flex; gap: 5px; font-size: 20px; }
+        .heart { color: var(--accent-red); transition: 0.3s; }
+        .heart.lost { color: #333; transform: scale(0.8); }
+
+        /* Прогресс бар */
+        .progress-container {
+            width: 100%; max-width: 600px; padding: 0 25px; box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+        .progress-text { font-size: 14px; color: var(--accent-main); margin-bottom: 5px; font-weight: bold;}
+        .progress-bar { width: 100%; height: 6px; background: #111; border-radius: 3px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent-sec), var(--accent-main)); width: 0%; transition: width 0.4s ease; }
+
+        /* Контейнер вопроса */
+        .quiz-container {
+            width: 90%; max-width: 600px; flex-grow: 1;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        .question-card {
+            width: 100%; background: var(--card-bg); border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 15px; padding: 15px; box-sizing: border-box; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            margin-bottom: 20px; animation: fadeIn 0.4s ease; display: flex; flex-direction: column; align-items: center;
+        }
+
+        .image-container {
+            width: 100%; height: 220px; border-radius: 10px; overflow: hidden;
+            border: 2px solid #222; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            background: #000; display: flex; justify-content: center; align-items: center;
+        }
+        .image-container img { width: 100%; height: 100%; object-fit: cover; }
+
+        .note-text { font-size: 12px; color: var(--accent-main); margin-top: 10px; font-weight: bold; text-align: center; height: 15px;}
+
+        /* Блок подсказок */
+        .hints-section { width: 100%; margin-top: 15px; display: flex; flex-direction: column; align-items: center; }
+        .btn-hint {
+            background: #111a28; color: var(--accent-main); border: 1px solid var(--accent-main);
+            padding: 8px 20px; border-radius: 20px; font-size: 14px; cursor: pointer;
+            display: flex; align-items: center; gap: 8px; transition: 0.2s; -webkit-tap-highlight-color: transparent;
+        }
+        .btn-hint:active { transform: scale(0.95); background: rgba(212, 175, 55, 0.2); }
+        .btn-hint:disabled { opacity: 0.5; border-color: #555; color: #888; cursor: not-allowed; }
+        
+        .hint-box {
+            width: 100%; background: #0a101a; border-left: 3px solid var(--accent-main);
+            padding: 10px 15px; box-sizing: border-box; margin-top: 10px; border-radius: 0 8px 8px 0;
+            font-size: 13px; color: #ddd; display: none; line-height: 1.4;
+        }
+
+        /* Поле ввода */
+        .input-section { width: 100%; display: flex; flex-direction: column; gap: 10px; padding-bottom: 30px; }
+        
+        .answer-input {
+            width: 100%; background: #0d1624; border: 2px solid #223; color: white;
+            padding: 15px 20px; border-radius: 12px; font-size: 16px; box-sizing: border-box;
+            outline: none; transition: 0.3s; text-align: center;
+        }
+        .answer-input:focus { border-color: var(--accent-main); box-shadow: 0 0 10px rgba(212, 175, 55, 0.3); }
+        .answer-input.wrong { border-color: var(--accent-red); animation: shake 0.4s; }
+        .answer-input.correct { border-color: var(--accent-green); background: rgba(56, 142, 60, 0.2); }
+
+        .btn-submit {
+            background: linear-gradient(45deg, var(--accent-sec), var(--accent-main));
+            color: #fff; border: none; padding: 15px; border-radius: 12px; font-size: 16px; font-weight: bold;
+            cursor: pointer; box-shadow: 0 5px 15px rgba(30, 60, 114, 0.4); transition: 0.2s;
+            -webkit-tap-highlight-color: transparent; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        .btn-submit:active { transform: scale(0.95); }
+        .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; }
+
+        /* Итоговый экран */
+        #result-screen { display: none; text-align: center; padding-top: 10vh; animation: fadeIn 0.5s ease; width: 90%; max-width: 600px;}
+        .result-title { font-size: 32px; color: var(--accent-main); margin-bottom: 10px; }
+        .result-score { font-size: 60px; font-weight: bold; margin: 20px 0; text-shadow: 0 0 20px rgba(212,175,55,0.5); }
+        .result-desc { font-size: 16px; color: var(--text-secondary); margin-bottom: 40px; line-height: 1.5; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- ЭКРАН ИГРЫ -->
+    <div id="quiz-screen" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+        
+        <div class="top-bar">
+            <button class="btn-exit" onclick="window.location.href='index.html'">Выйти</button>
+            <div class="attempts" id="attempts-display">
+                <span class="heart" id="heart-1">❤</span>
+                <span class="heart" id="heart-2">❤</span>
+                <span class="heart" id="heart-3">❤</span>
+            </div>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-text" id="progress-text">Кадр 1 из 10</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+        </div>
+
+        <div class="quiz-container">
+            <div class="question-card" id="question-card">
+                <div class="image-container">
+                    <img id="movie-img" src="" alt="Кадр из фильма">
+                </div>
+                <div class="note-text" id="note-text"></div>
+                
+                <div class="hints-section">
+                    <button class="btn-hint" id="btn-hint" onclick="revealHint()">💡 Получить подсказку (1/3)</button>
+                    <div class="hint-box" id="hint-box"></div>
+                </div>
+            </div>
+
+            <div class="input-section">
+                <input type="text" id="answer-input" class="answer-input" placeholder="Введите название..." autocomplete="off">
+                <button class="btn-submit" id="btn-submit" onclick="checkAnswer()">Ответить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ЭКРАН РЕЗУЛЬТАТОВ -->
+    <div id="result-screen">
+        <h1 class="result-title">Сценарий написан!</h1>
+        <div class="result-score" id="result-score">8/10</div>
+        <p class="result-desc" id="result-desc">Поздравляем!</p>
+        <button class="btn-submit" style="width: 100%;" onclick="window.location.href='index.html'">Вернуться в меню</button>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // БАЗА ДАННЫХ (КАДРЫ, ОТВЕТЫ, ПОДСКАЗКИ)
+        const questions = [
+            {
+                img: "https://sun9-40.userapi.com/s/v1/ig2/70DogUR1aH1kFLJqhphZa88PvuINoY-Zgfu1XuRzWhbDxS5eve8HTgx3WuCvPuyqhNapqJ67X2qdyyT_PeRxS2a7.jpg?quality=95&as=32x21,48x32,72x48,108x72,160x107,240x160,360x240,480x320,540x360,640x426,720x480,800x533&from=bu&u=EWGZ8CZBJFKLEz84de6QZH4lVXptroWNlnzx6HtntNU&cs=800x0",
+                correct: "Сверхъестественное",
+                note: "",
+                hints: ["Два брата колесят по Америке на черной Импале 1967 года.", "Они охотятся на демонов, призраков и монстров.", "Имена главных героев: Сэм и Дин Винчестеры."]
+            },
+            {
+                img: "https://sun9-42.userapi.com/s/v1/ig2/WoP-OqsoUTvZQYHEgskZQb-Q2Se1SLdb-lmO2SAQ2nIRUiU8kuwpC-WXXgTTEbRAoTRuhrFareVHOKtK_DUm2-n1.jpg?quality=95&as=32x18,48x27,72x40,108x61,160x90,240x135,360x202,480x270,540x304,640x360,720x405,1080x607,1280x720&from=bu&u=_hz-7nCwIe32HUR40X0GKzZMsF7X8tsGnsVW8P1g_OQ&cs=1280x0",
+                correct: "Ходячие мертвецы",
+                note: "",
+                hints: ["Постапокалипсис, где горстка людей пытается выжить среди зомби.", "Главный герой — бывший шериф Рик Граймс.", "В кадре Дэрил Диксон, его любимое оружие — арбалет."]
+            },
+            {
+                img: "https://sun9-82.userapi.com/s/v1/ig2/Rgb_qnNnH1fdWZI-J7AWa7X75j_l8yTLPHyRbuCx-vRW32pPmuLf6OG-DLXBO-P4GQfaSC1kC2Y5vHIC8ohv9MVr.jpg?quality=95&as=32x21,48x32,72x48,108x72,160x107,240x160,360x240,480x320,540x360,640x427,720x480,1080x720,1200x800&from=bu&u=jEysbfMUgkap2R6rLJ42EbQnmyI7fRGxQOlR4IbKz7A&cs=1200x0",
+                correct: "Касл",
+                note: "",
+                hints: ["Известный писатель детективов помогает полиции Нью-Йорка раскрывать убийства.", "Его муза и напарница — детектив Кейт Беккет.", "Название сериала — это фамилия главного героя (Ричард ...)."]
+            },
+            {
+                img: "https://sun9-59.userapi.com/s/v1/ig2/KKVujvMj5_YP3TYfdtwVcPXrAyXR2Gvq2CBeiLbWp6DLuKIY2zP2FtbmvRaeexuNTZs7aIRtcPdxuvAqRUlRqwtx.jpg?quality=95&as=32x14,48x20,72x31,108x46,160x68,240x102,360x153,480x204,540x229,640x272,720x306,1080x459,1200x510&from=bu&u=bcVGevYD27gGsR3VbgmFqwDUHpXZXgERY7Qj0LeMpOQ&cs=1200x0",
+                correct: "Живая сталь",
+                note: "",
+                hints: ["В будущем боксеры-люди заменены огромными роботами.", "Главную роль бывшего боксера исполняет Хью Джекман.", "Робота, которого тренируют отец и сын, зовут Атом."]
+            },
+            {
+                img: "https://sun9-36.userapi.com/s/v1/ig2/PrTHH2MV-Zu8mZ7g4JF4uRhdJPyMz6tpP5m9yLkPHDz--GukERo2QiUcjRRVJG3bgDatkxEmFDHzBtCiPUpUyW2r.jpg?quality=95&as=32x21,48x32,72x48,108x72,160x107,240x160,360x240,480x320,540x360,640x427,720x480,1080x720,1200x800&from=bu&u=pOIn9ZxqndMYsICQcmdXIeCx5GfJOUzpF7_-bZOkpbk&cs=1200x0",
+                correct: "Форс мажоры",
+                note: "",
+                hints: ["Стильный сериал про элитных корпоративных юристов Нью-Йорка.", "Один из героев обладает феноменальной памятью, но не учился в Гарварде.", "Главный дуэт: непобедимый Харви Спектер и гениальный Майк Росс."]
+            },
+            {
+                img: "https://sun9-59.userapi.com/s/v1/ig2/Y7OzLDRc3TDbNmohhMSo8nELd-3Y1TP-vEVCJsR6kNZmtIHUttvEYhvakzTLUEP-a4vfLvHke67lFjN3-Fi58u69.jpg?quality=95&as=32x18,48x27,72x40,108x61,160x90,240x135,360x202,480x270,540x304,640x360,720x405,960x540&from=bu&u=kkpnRXmCJbB4QrGzKuKaLkq1zjTei-MstOKGN_hcDAI&cs=960x0",
+                correct: "Острые козырьки",
+                note: "",
+                hints: ["Британский криминальный сериал о банде из Бирмингема в 1920-е годы.", "Главарь банды — харизматичный Томас Шелби (Киллиан Мёрфи).", "В их стильные кепки зашиты лезвия."]
+            },
+            {
+                img: "https://sun9-11.userapi.com/s/v1/ig2/NnkSXQfW4Y6nVnEQaFrJ4TjAm0qg9K3qO0lM2PaR7PL726IDyL4_CAZC9gbtcxE6xBmhmKoBO9QVOrdmB1oov5YM.jpg?quality=95&as=32x21,48x32,72x48,108x72,160x107,240x160,360x240,480x320,540x360,640x427,720x480,1000x667&from=bu&u=G8dvTEwxia2Srk3yYYGWWIoqD0VFLkpeFObcJ18X6_0&cs=1000x0",
+                correct: "Во все тяжкие",
+                note: "",
+                hints: ["Учитель химии узнает о страшном диагнозе и решает кардинально изменить жизнь.", "Он начинает варить синий мет вместе со своим бывшим учеником Джесси.", "В криминальном мире он берет себе псевдоним «Хайзенберг»."]
+            },
+            {
+                img: "https://sun9-82.userapi.com/s/v1/ig2/bZvdKZqLTsYs2_92OOc3wZtySNTKwKfVWJylsg1xU6RjHJdQFIPHFKkH7Jx13TGGbUSDQSSzJ8nQDCgji2cDn5iz.jpg?quality=95&as=32x18,48x27,72x40,108x61,160x90,240x135,360x202,480x270,540x304,610x343&from=bu&u=ow6Ba-zQkN7WNYCI88qmXg3VmQvAjAtB5fjew0i8lY0&cs=610x0",
+                correct: "Темный рыцарь",
+                note: "",
+                hints: ["Супергеройский шедевр от режиссера Кристофера Нолана.", "Бэтмен спасает Готэм от анархии.", "Главный антагонист — Джокер в гениальном исполнении Хита Леджера."]
+            },
+            {
+                img: "https://sun9-1.userapi.com/s/v1/ig2/szA_-4hD_VBkGAw0SXpN9QDuPNDuzcECFEKHxedxjh1hU6nWCUz7D2A0YxUAndo7rAwBrgj5XPGeWjyvJhMVLufq.jpg?quality=95&as=32x13,48x20,72x30,108x45,160x67,240x100,360x150,480x200,540x225,640x267,720x300,1080x450,1280x533,1440x600,1920x800&from=bu&u=1rxFFYkFP9Qj37lB5jCuc3GVmmsoZvRlbX0T7ZXodiI&cs=1920x0",
+                correct: "Железный человек 1",
+                note: "ОБЯЗАТЕЛЬНО УКАЖИТЕ НОМЕР ЧАСТИ",
+                hints: ["Фильм, с которого началась огромная Кинематографическая вселенная Marvel.", "Гений, миллиардер, плейбой и филантроп создает свой первый костюм в плену в пещере.", "В конце Тони Старк произносит легендарную фразу на пресс-конференции."]
+            },
+            {
+                img: "https://sun9-41.userapi.com/s/v1/ig2/9yXR3ZsOEfKTDPA43P5Bf5IRAqxLRiwjnKIKynt3b39ckJX8oFD8PDzZYszTDcDKrmXvLJYaN8O-OjQmsN-kj8S3.jpg?quality=95&as=32x18,48x27,72x40,108x61,160x90,240x135,360x202,480x270,540x304,640x360,720x405,1080x607,1280x720,1440x810,1920x1080&from=bu&u=LC2tV0p5Iwa91BUZ9eesgsbZ_xqX_QuQPhMJGiLefZY&cs=1920x0",
+                correct: "Властелин колец Две крепости",
+                note: "ОБЯЗАТЕЛЬНО УКАЖИТЕ НАЗВАНИЕ ЧАСТИ",
+                hints: ["Экранизация Толкина, вторая часть эпической фэнтези-трилогии.", "В фильме показана масштабная и долгая битва за Хельмову Падь.", "Фродо и Сэм встречают Голлума на пути в Мордор."]
+            }
+        ];
+
+        // СОСТОЯНИЕ ИГРЫ
+        let currentIdx = 0;
+        let attemptsLeft = 3;
+        let score = 0;
+        let currentHintIdx = 0;
+        let isProcessing = false;
+
+        // ЭЛЕМЕНТЫ DOM
+        const quizScreen = document.getElementById('quiz-screen');
+        const resultScreen = document.getElementById('result-screen');
+        const progressTextEl = document.getElementById('progress-text');
+        const progressFillEl = document.getElementById('progress-fill');
+        const movieImgEl = document.getElementById('movie-img');
+        const noteTextEl = document.getElementById('note-text');
+        const hintBoxEl = document.getElementById('hint-box');
+        const btnHintEl = document.getElementById('btn-hint');
+        const answerInputEl = document.getElementById('answer-input');
+        const btnSubmitEl = document.getElementById('btn-submit');
+        const hearts = [
+            document.getElementById('heart-1'),
+            document.getElementById('heart-2'),
+            document.getElementById('heart-3')
+        ];
+
+        // ИНИЦИАЛИЗАЦИЯ
+        function startQuiz() {
+            currentIdx = 0;
+            score = 0;
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            isProcessing = false;
+            attemptsLeft = 3;
+            currentHintIdx = 0;
+            updateHeartsUI();
+
+            const currentQ = questions[currentIdx];
+            
+            // Прогресс
+            progressTextEl.innerText = `Кадр ${currentIdx + 1} из ${questions.length}`;
+            progressFillEl.style.width = `${((currentIdx) / questions.length) * 100}%`;
+
+            // Данные
+            movieImgEl.src = currentQ.img;
+            noteTextEl.innerText = currentQ.note || "";
+            
+            // Сброс поля ввода
+            answerInputEl.value = "";
+            answerInputEl.disabled = false;
+            answerInputEl.classList.remove('wrong', 'correct');
+            answerInputEl.placeholder = "Введите название...";
+            btnSubmitEl.disabled = false;
+
+            // Сброс подсказок
+            hintBoxEl.style.display = 'none';
+            hintBoxEl.innerHTML = '';
+            btnHintEl.innerText = "💡 Получить подсказку (1/3)";
+            btnHintEl.disabled = false;
+
+            // Анимация
+            document.getElementById('question-card').style.animation = 'none';
+            document.getElementById('question-card').offsetHeight; 
+            document.getElementById('question-card').style.animation = 'fadeIn 0.4s ease';
+        }
+
+        // Логика подсказок
+        function revealHint() {
+            const currentQ = questions[currentIdx];
+            if (currentHintIdx < currentQ.hints.length) {
+                hintBoxEl.style.display = 'block';
+                const p = document.createElement('div');
+                p.style.marginBottom = '5px';
+                p.innerText = `${currentHintIdx + 1}. ${currentQ.hints[currentHintIdx]}`;
+                hintBoxEl.appendChild(p);
+                
+                currentHintIdx++;
+                
+                if (currentHintIdx >= 3) {
+                    btnHintEl.innerText = "Подсказок больше нет";
+                    btnHintEl.disabled = true;
+                } else {
+                    btnHintEl.innerText = `💡 Получить подсказку (${currentHintIdx + 1}/3)`;
+                }
+            }
+        }
+
+        function updateHeartsUI() {
+            hearts.forEach((h, index) => {
+                if (index < attemptsLeft) {
+                    h.classList.remove('lost');
+                } else {
+                    h.classList.add('lost');
+                }
+            });
+        }
+
+        // Нормализация строки (убираем пробелы, тире, двоеточия, переводим в нижний регистр)
+        function normalizeString(str) {
+            return str.toLowerCase().replace(/[^а-яa-z0-9]/g, '');
+        }
+
+        function checkAnswer() {
+            if (isProcessing || attemptsLeft <= 0) return;
+            
+            const userInput = answerInputEl.value.trim();
+            if (userInput === "") return;
+
+            const currentQ = questions[currentIdx];
+            const normalizedUser = normalizeString(userInput);
+            const normalizedCorrect = normalizeString(currentQ.correct);
+
+            if (normalizedUser === normalizedCorrect) {
+                // ПРАВИЛЬНЫЙ ОТВЕТ
+                isProcessing = true;
+                answerInputEl.classList.remove('wrong');
+                answerInputEl.classList.add('correct');
+                answerInputEl.disabled = true;
+                btnSubmitEl.disabled = true;
+                score++;
+                
+                setTimeout(nextQuestion, 1200);
+            } else {
+                // ОШИБКА
+                attemptsLeft--;
+                updateHeartsUI();
+                
+                answerInputEl.classList.remove('wrong');
+                void answerInputEl.offsetWidth; // Рефлоу для повторной анимации
+                answerInputEl.classList.add('wrong');
+                
+                if (attemptsLeft <= 0) {
+                    // КОНЕЦ ПОПЫТОК
+                    isProcessing = true;
+                    answerInputEl.disabled = true;
+                    btnSubmitEl.disabled = true;
+                    answerInputEl.value = `Ответ: ${currentQ.correct}`;
+                    answerInputEl.style.color = "var(--accent-red)";
+                    
+                    setTimeout(nextQuestion, 2000);
+                }
+            }
+        }
+
+        // Позволяем отправлять ответ по кнопке Enter на клавиатуре
+        answerInputEl.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                checkAnswer();
+            }
+        });
+
+        function nextQuestion() {
+            answerInputEl.style.color = "white"; // Сброс красного цвета
+            currentIdx++;
+            
+            if (currentIdx < questions.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            quizScreen.style.display = 'none';
+            resultScreen.style.display = 'block';
+            
+            document.getElementById('result-score').innerText = `${score}/${questions.length}`;
+            
+            const descEl = document.getElementById('result-desc');
+            if (score === questions.length) {
+                descEl.innerText = "Идеально! Ваш сценарий заслуживает Оскара. Вы настоящий знаток кино!";
+            } else if (score >= 7) {
+                descEl.innerText = "Отличная работа! У вас феноменальная визуальная память.";
+            } else if (score >= 4) {
+                descEl.innerText = "Неплохо, но некоторые шедевры стоит пересмотреть еще раз.";
+            } else {
+                descEl.innerText = "Кажется, вам пора устроить марафон кино на выходных. Результат слабоват.";
+            }
+        }
+
+        // Старт
+        window.onload = startQuiz;
+
+    </script>
+</body>
+</html>
