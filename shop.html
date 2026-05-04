@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Лавка «Гончарика»</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f0f12;
+            --card-bg: #1a1a20;
+            --accent-gold: #ffcc00;
+            --accent-gold-hover: #e6b800;
+            --accent-red: #e50914;
+            --text-main: #ffffff;
+            --text-secondary: #aaaaaa;
+            --input-bg: #2a2a32;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Шапка магазина */
+        header {
+            position: sticky; top: 0; z-index: 50;
+            background: rgba(15, 15, 18, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #333;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        .btn-back {
+            background: transparent; color: var(--accent-gold);
+            border: 1px solid var(--accent-gold); border-radius: 8px;
+            padding: 8px 15px; font-size: 14px; cursor: pointer;
+            transition: 0.2s; font-weight: bold;
+        }
+        .btn-back:active { background: rgba(255,204,0,0.2); transform: scale(0.95); }
+
+        h1 { margin: 0; font-size: 20px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-main); text-align: center;}
+        
+        .cart-btn {
+            background: var(--accent-gold); color: #000;
+            border: none; border-radius: 8px;
+            padding: 8px 15px; font-size: 14px; cursor: pointer;
+            font-weight: bold; display: flex; align-items: center; gap: 5px;
+            transition: 0.2s;
+        }
+        .cart-btn:active { transform: scale(0.95); }
+        .cart-badge {
+            background: var(--accent-red); color: white;
+            border-radius: 50%; padding: 2px 6px; font-size: 12px;
+        }
+
+        /* Сетка товаров */
+        .shop-container {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%; box-sizing: border-box;
+        }
+
+        /* Карточка товара */
+        .product-card {
+            background: var(--card-bg);
+            border: 1px solid #2a2a30; border-radius: 15px;
+            overflow: hidden; display: flex; flex-direction: column;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .product-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.5); border-color: var(--accent-gold); }
+
+        .img-container {
+            width: 100%; height: 250px; background: #000;
+            display: flex; justify-content: center; align-items: center;
+            border-bottom: 1px solid #2a2a30; padding: 10px; box-sizing: border-box;
+        }
+        .img-container img {
+            width: 100%; height: 100%;
+            object-fit: contain; /* Изображения не обрезаются */
+            border-radius: 8px;
+        }
+
+        .product-info { padding: 15px; display: flex; flex-direction: column; flex-grow: 1; }
+        .product-title { margin: 0 0 10px 0; font-size: 18px; font-weight: bold; color: var(--accent-gold); }
+        .product-desc { font-size: 13px; color: var(--text-secondary); margin: 0 0 15px 0; line-height: 1.4; flex-grow: 1; }
+
+        /* Опции (Размер, Пол, Объем) */
+        .options-row { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .select-box {
+            background: var(--input-bg); color: var(--text-main);
+            border: 1px solid #444; border-radius: 6px; padding: 8px;
+            font-size: 13px; flex-grow: 1; outline: none; cursor: pointer;
+        }
+        .select-box:focus { border-color: var(--accent-gold); }
+
+        .price-row { display: flex; justify-content: space-between; align-items: center; margin-top: auto; border-top: 1px solid #2a2a30; padding-top: 15px; }
+        .price { font-size: 20px; font-weight: bold; }
+        .add-btn {
+            background: var(--text-main); color: #000;
+            border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold;
+            cursor: pointer; transition: 0.2s;
+        }
+        .add-btn:active { transform: scale(0.95); background: var(--accent-gold); }
+
+        /* Оверлей корзины */
+        #cart-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
+            z-index: 100; display: none; justify-content: center; align-items: center;
+        }
+        .cart-content {
+            background: var(--card-bg); width: 90%; max-width: 500px; max-height: 90vh;
+            border-radius: 15px; border: 1px solid var(--accent-gold);
+            display: flex; flex-direction: column; overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8); animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .cart-header { padding: 15px 20px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; background: #111;}
+        .cart-header h2 { margin: 0; color: var(--accent-gold); font-size: 20px;}
+        .close-cart { background: none; border: none; color: #aaa; font-size: 24px; cursor: pointer; }
+
+        .cart-items { padding: 20px; overflow-y: auto; flex-grow: 1; max-height: 30vh; border-bottom: 1px solid #333;}
+        .cart-item { display: flex; justify-content: space-between; align-items: center; background: var(--input-bg); padding: 10px 15px; border-radius: 8px; margin-bottom: 10px;}
+        .item-info h4 { margin: 0 0 5px 0; font-size: 15px; }
+        .item-info p { margin: 0; font-size: 12px; color: #888; }
+        .item-price { font-weight: bold; color: var(--accent-gold); }
+        .remove-item { background: none; border: none; color: var(--accent-red); cursor: pointer; font-size: 16px; margin-left: 10px;}
+        
+        .empty-cart { text-align: center; color: #777; padding: 20px 0; }
+
+        .checkout-form { padding: 20px; background: #111; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 13px; color: #ccc; }
+        .form-input {
+            width: 100%; background: var(--input-bg); border: 1px solid #444; color: white;
+            padding: 12px; border-radius: 8px; box-sizing: border-box; font-size: 14px; outline: none;
+        }
+        .form-input:focus { border-color: var(--accent-gold); }
+        
+        .total-row { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; font-size: 20px; font-weight: bold; }
+        .payment-info { font-size: 12px; color: var(--accent-gold); text-align: center; margin-bottom: 15px;}
+        
+        .submit-btn {
+            width: 100%; background: var(--accent-gold); color: #000;
+            border: none; padding: 15px; border-radius: 8px; font-size: 16px; font-weight: bold;
+            cursor: pointer; transition: 0.2s; text-transform: uppercase;
+        }
+        .submit-btn:active { transform: scale(0.98); background: var(--accent-gold-hover); }
+        .submit-btn:disabled { background: #555; color: #888; cursor: not-allowed; }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <button class="btn-back" onclick="window.location.href='index.html'">⬅ Назад</button>
+        <h1>Лавка «Гончарика»</h1>
+        <button class="cart-btn" onclick="openCart()">
+            🛒 Корзина <span class="cart-badge" id="cart-count">0</span>
+        </button>
+    </header>
+
+    <div class="shop-container" id="shop-container">
+        <!-- Товары генерируются через JS -->
+    </div>
+
+    <!-- Модальное окно корзины -->
+    <div id="cart-modal">
+        <div class="cart-content">
+            <div class="cart-header">
+                <h2>Оформление заказа</h2>
+                <button class="close-cart" onclick="closeCart()">×</button>
+            </div>
+            
+            <div class="cart-items" id="cart-items">
+                <!-- Товары в корзине -->
+            </div>
+
+            <div class="checkout-form">
+                <div class="total-row">
+                    <span>Итого:</span>
+                    <span style="color: var(--accent-gold);"><span id="cart-total">0</span> ₽</span>
+                </div>
+                <div class="payment-info">⚠️ Оплата производится при получении заказа в кинотеатре.</div>
+
+                <form id="order-form" onsubmit="submitOrder(event)">
+                    <div class="form-group">
+                        <label>ФИО</label>
+                        <input type="text" id="order-name" class="form-input" placeholder="Иванов Иван Иванович" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Телефон</label>
+                        <input type="tel" id="order-phone" class="form-input" placeholder="+7 (999) 000-00-00" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Город получения</label>
+                        <input type="text" id="order-city" class="form-input" placeholder="Например: Москва" required>
+                    </div>
+                    <button type="submit" class="submit-btn" id="btn-submit">Оформить заказ</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // База товаров
+        const products = [
+            {
+                id: 1, type: "tumbler",
+                name: "Металлический стакан-тамблер",
+                desc: "Стильный аксессуар в матовом исполнении, который долго сохраняет температуру напитка. Это экологичная альтернатива пластику, удобная как для кинозала, так и для повседневного использования.",
+                img: "https://sun9-32.userapi.com/s/v1/ig2/PKj-Wu-lSWAR3-aER3LKFK1KqbBTfEgWNxg0Osdw5rvHCrq-gqIbGQmQaUJhFf_785OJjSs8lJjUGUmRF817QFnN.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1024x1024&from=bu&u=EICQJan_PUAHpr5vhMzbStGtdxOhU15zqpo9moLf0Dc&cs=1024x0",
+                options: [
+                    { label: "200 мл", price: 200 },
+                    { label: "300 мл", price: 300 },
+                    { label: "400 мл", price: 400 },
+                    { label: "500 мл", price: 500 }
+                ]
+            },
+            {
+                id: 2, type: "standard", price: 350,
+                name: "Вместительный шоппер",
+                desc: "Надежная сумка из плотного канваса с внутренними карманами, которая подойдет и для походов за покупками, и для ношения учебных принадлежностей или ноутбука.",
+                img: "https://sun9-50.userapi.com/s/v1/ig2/E4vV44Xvur560D_t0cTYzCtZPRNBl_Oboc8ck6VPsfBCHvmYH-CHJblqUnoIO0UrNimUzA4SDQ-PDNf6XfRExher.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1024x1024&from=bu&u=w9RDHSudYoWyBDXOyDmi_I5CYIryBYJSaS6p2OAKqNE&cs=1024x0"
+            },
+            {
+                id: 3, type: "standard", price: 150,
+                name: "Блокнот для рецензий",
+                desc: "Качественный ежедневник в твердом переплете, где предусмотрены поля для оценки фильмов, записи мыслей после просмотра и творческих заметок.",
+                img: "https://sun9-43.userapi.com/s/v1/ig2/-ov3gcRN8fzSXFEpZeYKIgguD-Gj-AU0eVMbknb15dp7_XYcyq7rVEGYUnbwujex7R1qjDCwD7t__6jZcn7wV3oy.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1024x1024&from=bu&u=s9Iqf3c9892BzuYTNmS5Ke2opw7FAcx-IAft6lxZ33E&cs=1024x0"
+            },
+            {
+                id: 4, type: "standard", price: 200,
+                name: "Складной плед в чехле",
+                desc: "Уютный компактный аксессуар, который можно взять с собой на вечерний сеанс или использовать дома. В сложенном виде занимает минимум места.",
+                img: "https://sun9-40.userapi.com/s/v1/ig2/_N-suHd8E8QIXf7f-bA2N1cGn29i5JLlw7XH0N9Hocpfb_v-8UN4C08nMQQLbfMc3nTV4Zl2caWHNYFqH-SVVE4l.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1024x1024&from=bu&u=jTMyPcQSETjV2_m-lfjx3fPk_Jd-b0xqktdF8cl_qMU&cs=1024x0"
+            },
+            {
+                id: 5, type: "clothing", price: 1000,
+                name: "Худи-оверсайз с принтом",
+                desc: "Качественная толстовка из плотного хлопка с минималистичной вышивкой или графикой, вдохновленной жанрами кино.",
+                img: "https://sun9-36.userapi.com/s/v1/ig2/HvvDlH0KIHM1mM-D4M4o5_QNsOLByAxl8tGNCPjYD1yfJTerGmwTdRshw7YmBcDZbqBx3tpz2bM1Jt8WICmTlzej.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1024x1024&from=bu&u=KjrJE1vujmi4fp7A-peCFnR92JHnvql97wC6q8WMdJY&cs=1024x0"
+            },
+            {
+                id: 6, type: "clothing", price: 1000,
+                name: "Джоггеры «Киномарафон»",
+                desc: "Плотные спортивные штаны (премиальный футер). Главная фишка — очень глубокие карманы на молнии, чтобы телефон не выскользнул в щель сиденья.",
+                img: "https://sun9-63.userapi.com/s/v1/ig2/uyOtqBZrRLlNNc_8K6Z9E4bn5uonKTAmuGg0bvqHhjZAFUSA9BseQmCgvhrU2kvEiGlPArR_SPtIo3plmeLs4cAN.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1024x1024&from=bu&u=peM5u4Gseu6eudFoljFxL8d9zCUVdl9FB-3bHbBAjv8&cs=1024x0"
+            },
+            {
+                id: 7, type: "clothing", price: 1000,
+                name: "Спортивные свит-шорты",
+                desc: "Летний аналог джоггеров свободного кроя. Отлично смотрятся в комплекте с оверсайз-худи. Вышитая кинохлопушка у нижнего края.",
+                img: "https://sun9-1.userapi.com/s/v1/ig2/4LAP6bizrwUO8V9KS0KRSXQ5-8k3Fc_P4QRrj0_56yAXMBGLXV6CKk8AKpw_6hSSw9JflUdE-LCxcextHPNNY5ue.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1024x1024&from=bu&u=GX1btk-D8T6vUFB_Phfyu3HQ1gZgwdP-iW8NFH77zrE&cs=1024x0"
+            },
+            {
+                id: 8, type: "clothing", price: 1000,
+                name: "Стритстайл футболка Back-print",
+                desc: "Спереди — аккуратный мини-логотип киносети. На спине — крупный детализированный арт с неоновой вывеской кинотеатра или ретро-камерой.",
+                img: "https://sun9-66.userapi.com/s/v1/ig2/P2SGtyaULdSHCMPwoaLLDA7X4N79SP5NCP_370VMw3ntadMPt9LBYjSBTYVM2953cHa8zk8-gbsvu5ArXHZAcTQF.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1024x1024&from=bu&u=oRnGV7iMtzIY8gnPR9MN1lfgTDFSNFD2-caL3_L8Od4&cs=1024x0"
+            }
+        ];
+
+        let cart = [];
+
+        // Инициализация магазина
+        function renderShop() {
+            const container = document.getElementById('shop-container');
+            container.innerHTML = '';
+
+            products.forEach(p => {
+                let optionsHTML = '';
+                let priceHTML = `<span class="price" id="price-${p.id}">${p.type === 'tumbler' ? p.options[0].price : p.price} ₽</span>`;
+
+                if (p.type === 'clothing') {
+                    optionsHTML = `
+                        <div class="options-row">
+                            <select id="gender-${p.id}" class="select-box">
+                                <option value="Мужской">Мужской</option>
+                                <option value="Женский">Женский</option>
+                            </select>
+                            <select id="size-${p.id}" class="select-box">
+                                <option value="S">Размер: S</option>
+                                <option value="M">Размер: M</option>
+                                <option value="L">Размер: L</option>
+                                <option value="XL">Размер: XL</option>
+                            </select>
+                        </div>
+                    `;
+                } else if (p.type === 'tumbler') {
+                    let volumeOptions = p.options.map((opt, i) => `<option value="${i}">${opt.label}</option>`).join('');
+                    optionsHTML = `
+                        <div class="options-row">
+                            <select id="volume-${p.id}" class="select-box" onchange="updateTumblerPrice(${p.id})">
+                                ${volumeOptions}
+                            </select>
+                        </div>
+                    `;
+                }
+
+                const card = `
+                    <div class="product-card">
+                        <div class="img-container">
+                            <img src="${p.img}" alt="${p.name}">
+                        </div>
+                        <div class="product-info">
+                            <h3 class="product-title">${p.name}</h3>
+                            <p class="product-desc">${p.desc}</p>
+                            ${optionsHTML}
+                            <div class="price-row">
+                                ${priceHTML}
+                                <button class="add-btn" onclick="addToCart(${p.id})">В корзину</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', card);
+            });
+        }
+
+        // Обновление цены для тамблера
+        window.updateTumblerPrice = function(id) {
+            const product = products.find(p => p.id === id);
+            const selectEl = document.getElementById(`volume-${id}`);
+            const selectedOpt = product.options[selectEl.value];
+            document.getElementById(`price-${id}`).innerText = `${selectedOpt.price} ₽`;
+        };
+
+        // Добавление в корзину
+        window.addToCart = function(id) {
+            const product = products.find(p => p.id === id);
+            let item = { id: product.id, name: product.name, price: 0, desc: '' };
+
+            if (product.type === 'clothing') {
+                const gender = document.getElementById(`gender-${id}`).value;
+                const size = document.getElementById(`size-${id}`).value;
+                item.desc = `${gender}, ${size}`;
+                item.price = product.price;
+            } else if (product.type === 'tumbler') {
+                const volIdx = document.getElementById(`volume-${id}`).value;
+                const opt = product.options[volIdx];
+                item.desc = `${opt.label}`;
+                item.price = opt.price;
+            } else {
+                item.desc = 'Стандарт';
+                item.price = product.price;
+            }
+
+            cart.push(item);
+            updateCartBadge();
+            tg.HapticFeedback.impactOccurred('light');
+        };
+
+        // UI Корзины
+        function updateCartBadge() {
+            document.getElementById('cart-count').innerText = cart.length;
+            const btnSubmit = document.getElementById('btn-submit');
+            if (cart.length > 0) {
+                btnSubmit.disabled = false;
+                btnSubmit.innerText = "Оформить заказ";
+            } else {
+                btnSubmit.disabled = true;
+                btnSubmit.innerText = "Корзина пуста";
+            }
+        }
+
+        window.openCart = function() {
+            renderCartItems();
+            document.getElementById('cart-modal').style.display = 'flex';
+        };
+
+        window.closeCart = function() {
+            document.getElementById('cart-modal').style.display = 'none';
+        };
+
+        function renderCartItems() {
+            const container = document.getElementById('cart-items');
+            let total = 0;
+            container.innerHTML = '';
+
+            if (cart.length === 0) {
+                container.innerHTML = '<div class="empty-cart">Ваша корзина пуста :(</div>';
+            } else {
+                cart.forEach((item, index) => {
+                    total += item.price;
+                    container.innerHTML += `
+                        <div class="cart-item">
+                            <div class="item-info">
+                                <h4>${item.name}</h4>
+                                <p>${item.desc}</p>
+                            </div>
+                            <div style="display:flex; align-items:center;">
+                                <span class="item-price">${item.price} ₽</span>
+                                <button class="remove-item" onclick="removeFromCart(${index})">✖</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            document.getElementById('cart-total').innerText = total;
+        }
+
+        window.removeFromCart = function(index) {
+            cart.splice(index, 1);
+            updateCartBadge();
+            renderCartItems();
+        };
+
+        // Оформление заказа
+        window.submitOrder = function(e) {
+            e.preventDefault();
+            if (cart.length === 0) return;
+
+            const name = document.getElementById('order-name').value;
+            const phone = document.getElementById('order-phone').value;
+            const city = document.getElementById('order-city').value;
+
+            // Здесь обычно идет отправка данных на бэкенд через tg.sendData()
+            // Но для визуала мы покажем красивый Alert и очистим корзину
+            
+            tg.showAlert(`✅ Заказ успешно оформлен!\n\n${name},\nЖдем вас в кинотеатре г. ${city}.\nОплата заказа (${document.getElementById('cart-total').innerText} ₽) производится на кассе.`);
+            
+            // Сброс
+            cart = [];
+            updateCartBadge();
+            document.getElementById('order-form').reset();
+            closeCart();
+        };
+
+        window.onload = renderShop;
+    </script>
+</body>
+</html>
