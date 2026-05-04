@@ -98,7 +98,7 @@
         .product-title { margin: 0 0 10px 0; font-size: 18px; font-weight: bold; color: var(--accent-gold); }
         .product-desc { font-size: 13px; color: var(--text-secondary); margin: 0 0 15px 0; line-height: 1.4; flex-grow: 1; }
 
-        /* Опции (Размер, Пол, Объем) */
+        /* Опции */
         .options-row { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
         .select-box {
             background: var(--input-bg); color: var(--text-main);
@@ -235,28 +235,29 @@
                 <!-- Товары в корзине -->
             </div>
 
-            <div class="checkout-form">
+            <div class="checkout-form" id="order-form-container">
                 <div class="total-row">
                     <span>Итого:</span>
                     <span style="color: var(--accent-gold);"><span id="cart-total">0</span> ₽</span>
                 </div>
                 <div class="payment-info">⚠️ Оплата производится при получении заказа в кинотеатре.</div>
 
-                <form id="order-form" onsubmit="submitOrder(event)">
+                <!-- Убрали тег <form>, теперь это просто <div> -->
+                <div id="order-form">
                     <div class="form-group">
                         <label>ФИО</label>
-                        <input type="text" id="order-name" class="form-input" placeholder="Иванов Иван Иванович" required>
+                        <input type="text" id="order-name" class="form-input" placeholder="Иванов Иван Иванович">
                     </div>
                     <div class="form-group">
                         <label>Телефон</label>
-                        <input type="tel" id="order-phone" class="form-input" placeholder="+7 (999) 000-00-00" required>
+                        <input type="tel" id="order-phone" class="form-input" placeholder="+7 (999) 000-00-00">
                     </div>
                     <div class="form-group">
                         <label>Город получения</label>
-                        <input type="text" id="order-city" class="form-input" placeholder="Например: Москва" required>
+                        <input type="text" id="order-city" class="form-input" placeholder="Например: Москва">
                     </div>
-                    <button type="submit" class="submit-btn" id="btn-submit">Оформить заказ</button>
-                </form>
+                    <button class="submit-btn" id="btn-submit" onclick="submitOrder()">Оформить заказ</button>
+                </div>
             </div>
         </div>
     </div>
@@ -509,13 +510,23 @@
             renderCartItems();
         };
 
-        // Оформление заказа и вывод Чека
-        window.submitOrder = function(e) {
-            e.preventDefault();
+        // НАДЕЖНОЕ ОФОРМЛЕНИЕ ЗАКАЗА (JS ВАЛИДАЦИЯ БЕЗ <form>)
+        window.submitOrder = function() {
             if (cart.length === 0) return;
 
-            const name = document.getElementById('order-name').value;
-            const city = document.getElementById('order-city').value;
+            const nameInput = document.getElementById('order-name');
+            const phoneInput = document.getElementById('order-phone');
+            const cityInput = document.getElementById('order-city');
+
+            const name = nameInput.value.trim();
+            const phone = phoneInput.value.trim();
+            const city = cityInput.value.trim();
+
+            // Ручная проверка, чтобы кнопка 100% работала на компьютере
+            if (!name || !phone || !city) {
+                tg.showAlert('Брат, заполни все поля (ФИО, Телефон, Город), чтобы мы знали, кому отдать заказ!');
+                return;
+            }
 
             // Генерация номера заказа (6 цифр)
             const orderNumber = Math.floor(100000 + Math.random() * 900000);
@@ -552,7 +563,12 @@
             document.getElementById('receipt-modal').style.display = 'none';
             cart = [];
             updateCartBadge();
-            document.getElementById('order-form').reset();
+            
+            // Очищаем инпуты
+            document.getElementById('order-name').value = '';
+            document.getElementById('order-phone').value = '';
+            document.getElementById('order-city').value = '';
+            
             window.scrollTo(0, 0); // Возврат наверх страницы
         };
 
